@@ -1,0 +1,2 @@
+- Use TanStack Start file routes and browser-side Axios for the externally hosted PoshanScan API; the API owns credentials, roles, and profile persistence, so the frontend never grants access by itself.
+- Keep offline scan submissions in IndexedDB until the external sync endpoint acknowledges them, because photo blobs must survive reloads without a connection.

@@ -1,0 +1,3 @@
+- [ ] Build PoshanScan landing, login, worker capture, result, and supervisor dashboard screens.
+- [ ] Wire configured external API, offline scan queue, and supplied marker/pose imagery.
+- [ ] Verify public and authenticated UI flows as far as an available API permits.

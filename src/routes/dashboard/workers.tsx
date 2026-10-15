@@ -1,6 +1,0 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { Dashboard, DashboardError, DataTable } from '@/components/Dashboard';
-import { useDashboardData } from '@/lib/dashboard';
-export const Route=createFileRoute('/dashboard/workers')({head:()=>({meta:[{title:'Workers — PoshanScan'},{name:'description',content:'Worker screening counts and activity.'},{property:'og:title',content:'Workers — PoshanScan'},{property:'og:description',content:'Worker screening counts and activity.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary'}]}),component:Workers});
-type Worker={name?:string;phone?:string;user_id?:string;screening_count?:number;total_screenings?:number;last_active?:string};
-function Workers(){const {data,error}=useDashboardData<Worker[]|{workers:Worker[]}>('/dashboard/workers');const list=Array.isArray(data)?data:data?.workers||[];return <Dashboard title="Workers" subtitle="Keep track of your team's screening activity.">{error?<DashboardError error={error}/>:!data?<p className="text-muted-foreground">Loading workers…</p>:<DataTable columns={['Worker','Phone','Screenings','Last active']} rows={list.map(w=>[w.name||w.user_id||'—',w.phone||'—',w.screening_count??w.total_screenings??0,w.last_active?new Date(w.last_active).toLocaleDateString():'—'])}/>}</Dashboard>}

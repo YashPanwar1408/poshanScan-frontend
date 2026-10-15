@@ -10,15 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppChildrenRouteImport } from './routes/app/children'
 import { Route as AppScanRouteImport } from './routes/app/scan'
-import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
-import { Route as DashboardFlaggedRouteImport } from './routes/dashboard/flagged'
-import { Route as DashboardLocationsRouteImport } from './routes/dashboard/locations'
-import { Route as DashboardTrendsRouteImport } from './routes/dashboard/trends'
-import { Route as DashboardWorkersRouteImport } from './routes/dashboard/workers'
 import { Route as SupervisorLoginRouteImport } from './routes/supervisor.login'
 import { Route as WorkerLoginRouteImport } from './routes/worker.login'
 import { Route as AppCaptureChildIdRouteImport } from './routes/app/capture.$childId'
@@ -27,11 +21,6 @@ import { Route as AppResultScanIdRouteImport } from './routes/app/result.$scanId
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -48,31 +37,6 @@ const AppScanRoute = AppScanRouteImport.update({
   id: '/app/scan',
   path: '/app/scan',
   getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardIndexRoute = DashboardIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => DashboardRoute,
-} as any)
-const DashboardFlaggedRoute = DashboardFlaggedRouteImport.update({
-  id: '/flagged',
-  path: '/flagged',
-  getParentRoute: () => DashboardRoute,
-} as any)
-const DashboardLocationsRoute = DashboardLocationsRouteImport.update({
-  id: '/locations',
-  path: '/locations',
-  getParentRoute: () => DashboardRoute,
-} as any)
-const DashboardTrendsRoute = DashboardTrendsRouteImport.update({
-  id: '/trends',
-  path: '/trends',
-  getParentRoute: () => DashboardRoute,
-} as any)
-const DashboardWorkersRoute = DashboardWorkersRouteImport.update({
-  id: '/workers',
-  path: '/workers',
-  getParentRoute: () => DashboardRoute,
 } as any)
 const SupervisorLoginRoute = SupervisorLoginRouteImport.update({
   id: '/supervisor/login',
@@ -97,17 +61,11 @@ const AppResultScanIdRoute = AppResultScanIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
   '/app/children': typeof AppChildrenRoute
   '/app/scan': typeof AppScanRoute
-  '/dashboard/flagged': typeof DashboardFlaggedRoute
-  '/dashboard/locations': typeof DashboardLocationsRoute
-  '/dashboard/trends': typeof DashboardTrendsRoute
-  '/dashboard/workers': typeof DashboardWorkersRoute
   '/supervisor/login': typeof SupervisorLoginRoute
   '/worker/login': typeof WorkerLoginRoute
-  '/dashboard/': typeof DashboardIndexRoute
   '/app/capture/$childId': typeof AppCaptureChildIdRoute
   '/app/result/$scanId': typeof AppResultScanIdRoute
 }
@@ -116,30 +74,19 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/app/children': typeof AppChildrenRoute
   '/app/scan': typeof AppScanRoute
-  '/dashboard/flagged': typeof DashboardFlaggedRoute
-  '/dashboard/locations': typeof DashboardLocationsRoute
-  '/dashboard/trends': typeof DashboardTrendsRoute
-  '/dashboard/workers': typeof DashboardWorkersRoute
   '/supervisor/login': typeof SupervisorLoginRoute
   '/worker/login': typeof WorkerLoginRoute
-  '/dashboard': typeof DashboardIndexRoute
   '/app/capture/$childId': typeof AppCaptureChildIdRoute
   '/app/result/$scanId': typeof AppResultScanIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
   '/app/children': typeof AppChildrenRoute
   '/app/scan': typeof AppScanRoute
-  '/dashboard/flagged': typeof DashboardFlaggedRoute
-  '/dashboard/locations': typeof DashboardLocationsRoute
-  '/dashboard/trends': typeof DashboardTrendsRoute
-  '/dashboard/workers': typeof DashboardWorkersRoute
   '/supervisor/login': typeof SupervisorLoginRoute
   '/worker/login': typeof WorkerLoginRoute
-  '/dashboard/': typeof DashboardIndexRoute
   '/app/capture/$childId': typeof AppCaptureChildIdRoute
   '/app/result/$scanId': typeof AppResultScanIdRoute
 }
@@ -147,17 +94,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/dashboard'
     | '/login'
     | '/app/children'
     | '/app/scan'
-    | '/dashboard/flagged'
-    | '/dashboard/locations'
-    | '/dashboard/trends'
-    | '/dashboard/workers'
     | '/supervisor/login'
     | '/worker/login'
-    | '/dashboard/'
     | '/app/capture/$childId'
     | '/app/result/$scanId'
   fileRoutesByTo: FileRoutesByTo
@@ -166,36 +107,24 @@ export interface FileRouteTypes {
     | '/login'
     | '/app/children'
     | '/app/scan'
-    | '/dashboard/flagged'
-    | '/dashboard/locations'
-    | '/dashboard/trends'
-    | '/dashboard/workers'
     | '/supervisor/login'
     | '/worker/login'
-    | '/dashboard'
     | '/app/capture/$childId'
     | '/app/result/$scanId'
   id:
     | '__root__'
     | '/'
-    | '/dashboard'
     | '/login'
     | '/app/children'
     | '/app/scan'
-    | '/dashboard/flagged'
-    | '/dashboard/locations'
-    | '/dashboard/trends'
-    | '/dashboard/workers'
     | '/supervisor/login'
     | '/worker/login'
-    | '/dashboard/'
     | '/app/capture/$childId'
     | '/app/result/$scanId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRouteWithChildren
   LoginRoute: typeof LoginRoute
   AppChildrenRoute: typeof AppChildrenRoute
   AppScanRoute: typeof AppScanRoute
@@ -212,13 +141,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -241,41 +163,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/scan'
       preLoaderRoute: typeof AppScanRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/': {
-      id: '/dashboard/'
-      path: '/'
-      fullPath: '/dashboard/'
-      preLoaderRoute: typeof DashboardIndexRouteImport
-      parentRoute: typeof DashboardRoute
-    }
-    '/dashboard/flagged': {
-      id: '/dashboard/flagged'
-      path: '/flagged'
-      fullPath: '/dashboard/flagged'
-      preLoaderRoute: typeof DashboardFlaggedRouteImport
-      parentRoute: typeof DashboardRoute
-    }
-    '/dashboard/locations': {
-      id: '/dashboard/locations'
-      path: '/locations'
-      fullPath: '/dashboard/locations'
-      preLoaderRoute: typeof DashboardLocationsRouteImport
-      parentRoute: typeof DashboardRoute
-    }
-    '/dashboard/trends': {
-      id: '/dashboard/trends'
-      path: '/trends'
-      fullPath: '/dashboard/trends'
-      preLoaderRoute: typeof DashboardTrendsRouteImport
-      parentRoute: typeof DashboardRoute
-    }
-    '/dashboard/workers': {
-      id: '/dashboard/workers'
-      path: '/workers'
-      fullPath: '/dashboard/workers'
-      preLoaderRoute: typeof DashboardWorkersRouteImport
-      parentRoute: typeof DashboardRoute
     }
     '/supervisor/login': {
       id: '/supervisor/login'
@@ -308,29 +195,8 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface DashboardRouteChildren {
-  DashboardFlaggedRoute: typeof DashboardFlaggedRoute
-  DashboardLocationsRoute: typeof DashboardLocationsRoute
-  DashboardTrendsRoute: typeof DashboardTrendsRoute
-  DashboardWorkersRoute: typeof DashboardWorkersRoute
-  DashboardIndexRoute: typeof DashboardIndexRoute
-}
-
-const DashboardRouteChildren: DashboardRouteChildren = {
-  DashboardFlaggedRoute: DashboardFlaggedRoute,
-  DashboardLocationsRoute: DashboardLocationsRoute,
-  DashboardTrendsRoute: DashboardTrendsRoute,
-  DashboardWorkersRoute: DashboardWorkersRoute,
-  DashboardIndexRoute: DashboardIndexRoute,
-}
-
-const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
-  DashboardRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRoute: DashboardRouteWithChildren,
   LoginRoute: LoginRoute,
   AppChildrenRoute: AppChildrenRoute,
   AppScanRoute: AppScanRoute,
@@ -342,13 +208,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -62,7 +62,7 @@ export function RoleLogin({ role }: { role: LoginRole }) {
         setError(`This account is not a ${role} account. Please use the ${user.role} login.`);
         return;
       }
-      navigate({ to: role === "worker" ? "/app/scan" : "/dashboard", replace: true });
+      navigate({ to: role === "worker" ? "/app/scan" : "/supervisor/login", replace: true });
     } catch (cause) {
       setError(errorMessage(cause));
     } finally {

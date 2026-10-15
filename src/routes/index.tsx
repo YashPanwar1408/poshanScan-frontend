@@ -83,7 +83,7 @@ function Landing() {
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline">
-                  <Link to="/supervisor/login">Login as Supervisor</Link>
+                  <Link to="/supervisor/login">Supervisor login</Link>
                 </Button>
               </div>
               <div className="mt-12 flex items-center gap-3 border-t border-border pt-6 text-sm text-muted-foreground">

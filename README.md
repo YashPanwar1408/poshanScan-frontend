@@ -8,6 +8,6 @@ follow-up.
 Install dependencies and start the local development server:
 
 ```sh
-bun install
-bun run dev
+npm install
+npm run dev
 ```

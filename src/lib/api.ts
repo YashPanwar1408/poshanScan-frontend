@@ -40,6 +40,7 @@ export type ScanResult = {
   risk_band: "NORMAL" | "MAM" | "SAM";
   confidence_score: number;
   created_at: string;
+  age_category: "child_6_59m" | "adult";
 };
 export function errorMessage(error: unknown) {
   if (axios.isAxiosError(error)) {

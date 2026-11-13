@@ -7,6 +7,14 @@ import { useAuth } from "@/lib/auth";
 import { api, errorMessage, type ScanResult } from "@/lib/api";
 import { saveQueued } from "@/lib/offline";
 export const Route = createFileRoute("/app/capture/$childId")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    age_category:
+      search["age_category"] === "adult"
+        ? ("adult" as const)
+        : search["age_category"] === "child_6_59m"
+          ? ("child_6_59m" as const)
+          : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Capture photo — PoshanScan" },
@@ -25,6 +33,7 @@ export const Route = createFileRoute("/app/capture/$childId")({
 });
 function Capture() {
   const { childId } = Route.useParams();
+  const { age_category } = Route.useSearch();
   const { user } = useAuth();
   const navigate = useNavigate();
   const video = useRef<HTMLVideoElement>(null);
@@ -86,7 +95,7 @@ function Capture() {
     );
   }
   async function submit() {
-    if (!photo || !user) return;
+    if (!photo || !user || !age_category) return;
     setBusy(true);
     setError("");
     const metadata = {
@@ -96,6 +105,7 @@ function Capture() {
       captured_at: new Date().toISOString(),
       reference_type: import.meta.env["VITE_REFERENCE_TYPE"] || "aruco",
       reference_size_mm: size,
+      age_category,
     };
     const data = new FormData();
     data.append("image", new File([photo], "capture.jpg", { type: photo.type || "image/jpeg" }));
@@ -198,13 +208,13 @@ function Capture() {
                     >
                       <RotateCcw /> Retake
                     </Button>
-                    <Button onClick={submit} disabled={busy || !size || size <= 0}>
+                    <Button onClick={submit} disabled={busy || !size || size <= 0 || !age_category}>
                       {busy ? "Analyzing photo — this can take up to a minute" : "Use this photo"}
                     </Button>
                   </>
                 ) : (
                   <>
-                    <Button onClick={capture} disabled={!!cameraError}>
+                    <Button onClick={capture} disabled={!!cameraError || !age_category}>
                       <Camera /> Capture photo
                     </Button>
                     <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-secondary">
@@ -213,6 +223,7 @@ function Capture() {
                         type="file"
                         accept="image/*"
                         className="sr-only"
+                        disabled={!age_category}
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file && file.type.startsWith("image/")) setPhoto(file);

@@ -5,7 +5,15 @@ import { Button } from "@/components/ui/button";
 import { RequireRole, WorkerShell } from "@/components/Screen";
 import { api, childSchema, errorMessage, type Child } from "@/lib/api";
 export const Route = createFileRoute("/app/children")({
-  validateSearch: (search: Record<string, unknown>) => ({ register: search["register"] === true }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    register: search["register"] === true,
+    age_category:
+      search["age_category"] === "adult"
+        ? ("adult" as const)
+        : search["age_category"] === "child_6_59m"
+          ? ("child_6_59m" as const)
+          : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Children — PoshanScan" },
@@ -23,7 +31,7 @@ export const Route = createFileRoute("/app/children")({
   ),
 });
 function Children() {
-  const { register } = Route.useSearch();
+  const { register, age_category } = Route.useSearch();
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<Child[]>([]);
   const [open, setOpen] = useState(register);
@@ -166,6 +174,7 @@ function Children() {
                 key={item.id}
                 to="/app/capture/$childId"
                 params={{ childId: item.id }}
+                search={{ age_category }}
                 className="flex items-center justify-between border-b border-border p-5 last:border-0 hover:bg-secondary/50"
               >
                 <div>

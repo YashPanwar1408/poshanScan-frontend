@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { ArrowRight, Camera, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { RequireRole, WorkerShell } from "@/components/Screen";
 export const Route = createFileRoute("/app/scan")({
   head: () => ({
@@ -15,15 +15,54 @@ export const Route = createFileRoute("/app/scan")({
   }),
   component: () => (
     <RequireRole allowed={["worker"]}>
-      <WorkerShell title="New screening">
-        <div className="max-w-2xl">
+      <ScanStart />
+    </RequireRole>
+  ),
+});
+function ScanStart() {
+  const [category, setCategory] = useState<"child_6_59m" | "adult" | "">("");
+  return (
+    <WorkerShell title="New screening">
+      <div className="max-w-2xl">
+        <p className="text-lg font-medium">Who is being screened?</p>
+        <div
+          className="mt-4 grid gap-3 sm:grid-cols-2"
+          role="group"
+          aria-label="Screening category"
+        >
+          {(
+            [
+              ["child_6_59m", "Child (6–59 months)"],
+              ["adult", "Adult"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={category === value}
+              onClick={() => setCategory(value)}
+              className={`panel p-5 text-left font-semibold ${category === value ? "border-primary ring-2 ring-primary" : "hover:border-primary"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Choose a category to continue. No category is selected by default.
+        </p>
+        <div className={category ? "" : "opacity-50"} aria-disabled={!category}>
           <p className="text-lg text-muted-foreground">
             Find an existing child or register a new one before taking a photo.
           </p>
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             <Link
               to="/app/children"
-              search={{ register: false }}
+              search={{ register: false, age_category: category || undefined }}
+              aria-disabled={!category}
+              tabIndex={category ? 0 : -1}
+              onClick={(event) => {
+                if (!category) event.preventDefault();
+              }}
               className="panel group p-7 hover:border-primary"
             >
               <Search className="text-primary" size={28} />
@@ -35,7 +74,12 @@ export const Route = createFileRoute("/app/scan")({
             </Link>
             <Link
               to="/app/children"
-              search={{ register: true }}
+              search={{ register: true, age_category: category || undefined }}
+              aria-disabled={!category}
+              tabIndex={category ? 0 : -1}
+              onClick={(event) => {
+                if (!category) event.preventDefault();
+              }}
               className="panel group p-7 hover:border-primary"
             >
               <Camera className="text-primary" size={28} />
@@ -47,7 +91,7 @@ export const Route = createFileRoute("/app/scan")({
             </Link>
           </div>
         </div>
-      </WorkerShell>
-    </RequireRole>
-  ),
-});
+      </div>
+    </WorkerShell>
+  );
+}

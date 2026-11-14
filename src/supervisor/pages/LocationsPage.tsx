@@ -7,7 +7,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import "leaflet.heat";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import {
   MapTrifold,
@@ -38,6 +37,16 @@ type ViewMode = "bubbles" | "heat";
 type MetricKey = "samRate" | "gamRate" | "volume";
 type GroupByKey = "village" | "block" | "district";
 type SortOption = "risk_desc" | "volume_desc" | "name_asc";
+
+let heatPluginPromise: Promise<unknown> | null = null;
+
+function loadHeatPlugin() {
+  if (!heatPluginPromise) {
+    (globalThis as typeof globalThis & { L?: typeof L }).L = L;
+    heatPluginPromise = import("leaflet.heat");
+  }
+  return heatPluginPromise;
+}
 
 // Controller component to safely manage Leaflet map bounds, flyTo, and resize invalidation
 function MapController({
@@ -94,21 +103,27 @@ function HeatmapLayer({ points }: { points: [number, number, number][] }) {
 
   useEffect(() => {
     if (points.length === 0) return;
-    const heat = L.heatLayer(points, {
-      radius: 28,
-      blur: 16,
-      maxZoom: 15,
-      max: 1.0,
-      gradient: {
-        0.2: "#3b82f6",
-        0.5: "#eab308",
-        0.8: "#ef4444",
-      },
+    let active = true;
+    let heat: L.Layer | null = null;
+    loadHeatPlugin().then(() => {
+      if (!active) return;
+      heat = L.heatLayer(points, {
+        radius: 28,
+        blur: 16,
+        maxZoom: 15,
+        max: 1.0,
+        gradient: {
+          0.2: "#3b82f6",
+          0.5: "#eab308",
+          0.8: "#ef4444",
+        },
+      });
+      heat.addTo(map);
     });
-    heat.addTo(map);
 
     return () => {
-      map.removeLayer(heat);
+      active = false;
+      if (heat) map.removeLayer(heat);
     };
   }, [map, points]);
 

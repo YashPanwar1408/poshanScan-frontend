@@ -40,7 +40,10 @@ function ScanStart() {
               key={value}
               type="button"
               aria-pressed={category === value}
-              onClick={() => setCategory(value)}
+              onClick={() => {
+                setCategory(value);
+                sessionStorage.setItem("poshanscan_age_category", value);
+              }}
               className={`panel p-5 text-left font-semibold ${category === value ? "border-primary ring-2 ring-primary" : "hover:border-primary"}`}
             >
               {label}

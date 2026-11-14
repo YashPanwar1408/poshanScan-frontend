@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Camera, RotateCcw, Upload, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RequireRole, WorkerShell } from "@/components/Screen";
@@ -36,7 +36,16 @@ function Capture() {
   const { age_category } = Route.useSearch();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const effectiveAgeCategory =
+    age_category ??
+    (typeof window !== "undefined"
+      ? (sessionStorage.getItem("poshanscan_age_category") as
+          | "child_6_59m"
+          | "adult"
+          | null)
+      : null);
   const video = useRef<HTMLVideoElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [preview, setPreview] = useState("");
@@ -94,8 +103,34 @@ function Capture() {
       0.9,
     );
   }
+  function handleUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image file.");
+      return;
+    }
+    setError("");
+    setPhoto(file);
+  }
   async function submit() {
-    if (!photo || !user || !age_category) return;
+    if (!photo) {
+      setError("Please capture or upload a photo first.");
+      return;
+    }
+    if (!user) {
+      setError("Your session has expired. Please log in again.");
+      return;
+    }
+    if (!effectiveAgeCategory) {
+      setError("Please choose whether this screening is for a child or an adult.");
+      return;
+    }
+    if (!size || size <= 0) {
+      setError("Enter a valid marker size before submitting.");
+      return;
+    }
     setBusy(true);
     setError("");
     const metadata = {
@@ -105,7 +140,7 @@ function Capture() {
       captured_at: new Date().toISOString(),
       reference_type: import.meta.env["VITE_REFERENCE_TYPE"] || "aruco",
       reference_size_mm: size,
-      age_category,
+      age_category: effectiveAgeCategory,
     };
     const data = new FormData();
     data.append("image", new File([photo], "capture.jpg", { type: photo.type || "image/jpeg" }));
@@ -208,28 +243,33 @@ function Capture() {
                     >
                       <RotateCcw /> Retake
                     </Button>
-                    <Button onClick={submit} disabled={busy || !size || size <= 0 || !age_category}>
+                    <Button
+                      type="button"
+                      onClick={submit}
+                      disabled={busy || !size || size <= 0}
+                    >
                       {busy ? "Analyzing photo — this can take up to a minute" : "Use this photo"}
                     </Button>
                   </>
                 ) : (
                   <>
-                    <Button onClick={capture} disabled={!!cameraError || !age_category}>
+                    <Button onClick={capture} disabled={!!cameraError || !effectiveAgeCategory}>
                       <Camera /> Capture photo
                     </Button>
-                    <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-secondary">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInput.current?.click()}
+                    >
                       <Upload size={16} /> Upload photo
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="sr-only"
-                        disabled={!age_category}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file && file.type.startsWith("image/")) setPhoto(file);
-                        }}
-                      />
-                    </label>
+                    </Button>
+                    <input
+                      ref={fileInput}
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={handleUpload}
+                    />
                   </>
                 )}
               </div>

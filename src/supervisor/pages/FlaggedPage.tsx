@@ -28,8 +28,6 @@ import {
   CalendarBlank,
   Copy,
   ArrowsClockwise,
-  Eye,
-  EyeSlash,
   Warning,
   ArrowRight,
   Info,
@@ -40,7 +38,7 @@ import {
   CaretRight,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
-import { useFlagged, useReviewFlagged } from "../api/hooks";
+import { useFlagged, useReviewFlagged, useChildrenSearch } from "../api/hooks";
 import { useSvPrefs } from "../store/prefs";
 import { formatNumber } from "../api/adapters";
 import type { FlaggedVM } from "../api/adapters";
@@ -55,9 +53,9 @@ import {
 import { BandBadge } from "../components/BandBadge";
 import { getMuacBands } from "@/lib/muac";
 
-type FlagTab = "pending" | "reviewed";
-type ReasonFilter = "all" | "sam" | "low_confidence";
-type SortOrder = "newest" | "lowest_conf" | "lowest_muac";
+type FlagTab = "pending" | "all_children" | "reviewed";
+type ReasonFilter = "all" | "flagged" | "sam" | "mam" | "normal" | "low_confidence";
+type SortOrder = "flagged_first" | "newest" | "lowest_conf" | "lowest_muac" | "name_asc";
 
 export function FlaggedPage() {
   const { ageCategory } = useSvPrefs();
@@ -68,7 +66,7 @@ export function FlaggedPage() {
   const [activeTab, setActiveTab] = useState<FlagTab>("pending");
   const [searchQuery, setSearchQuery] = useState("");
   const [reasonFilter, setReasonFilter] = useState<ReasonFilter>("all");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("flagged_first");
   const [page, setPage] = useState(1);
   const pageSize = 25;
 
@@ -80,15 +78,24 @@ export function FlaggedPage() {
 
   // UI modals
   const [showImageZoom, setShowImageZoom] = useState(false);
-  const [revealedNames, setRevealedNames] = useState<Record<string, boolean>>({});
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Queries for pending & reviewed
+  // Queries for pending, reviewed, and all children
   const pendingQuery = useFlagged("pending", ageCategory);
   const reviewedQuery = useFlagged("reviewed", ageCategory);
+  const childrenSearchQuery = useChildrenSearch(searchQuery);
 
-  const currentQuery = activeTab === "pending" ? pendingQuery : reviewedQuery;
+  const currentQuery = activeTab === "reviewed" ? reviewedQuery : pendingQuery;
+  const isLoading =
+    activeTab === "all_children"
+      ? pendingQuery.isLoading || childrenSearchQuery.isLoading
+      : currentQuery.isLoading;
+  const isError =
+    activeTab === "all_children"
+      ? pendingQuery.isError && childrenSearchQuery.isError
+      : currentQuery.isError;
+
   const reviewMutation = useReviewFlagged();
 
   // Keep URL in sync with selectedScanId
@@ -107,40 +114,166 @@ export function FlaggedPage() {
 
   // Filter and sort items
   const filteredItems = useMemo(() => {
-    const raw = currentQuery.data?.items ?? [];
-    let items = raw;
+    const isAdultCategory = ageCategory === "adult";
+    const pendingItems = pendingQuery.data?.items ?? [];
+    const reviewedItems = reviewedQuery.data?.items ?? [];
+    const registered = isAdultCategory ? [] : (childrenSearchQuery.data ?? []);
 
-    // Reason filter
-    if (reasonFilter === "sam") {
-      items = items.filter((i) => i.band.toUpperCase() === "SAM");
-    } else if (reasonFilter === "low_confidence") {
-      items = items.filter((i) => i.confidencePct < 60);
+    let items: FlaggedVM[] = [];
+
+    if (activeTab === "pending") {
+      items = pendingItems.map((i) => ({ ...i, isFlagged: true }));
+      if (isAdultCategory) {
+        items = items.filter(
+          (i) =>
+            (i as Record<string, unknown>).age_category === "adult" ||
+            (i as Record<string, unknown>).ageCategory === "adult",
+        );
+      }
+    } else if (activeTab === "reviewed") {
+      items = reviewedItems;
+      if (isAdultCategory) {
+        items = items.filter(
+          (i) =>
+            (i as Record<string, unknown>).age_category === "adult" ||
+            (i as Record<string, unknown>).ageCategory === "adult",
+        );
+      }
+    } else {
+      if (isAdultCategory) {
+        const adultPending = pendingItems
+          .filter(
+            (i) =>
+              (i as Record<string, unknown>).age_category === "adult" ||
+              (i as Record<string, unknown>).ageCategory === "adult",
+          )
+          .map((i) => ({ ...i, isFlagged: true, status: "pending" }));
+        const adultReviewed = reviewedItems.filter(
+          (i) =>
+            (i as Record<string, unknown>).age_category === "adult" ||
+            (i as Record<string, unknown>).ageCategory === "adult",
+        );
+        items = [...adultPending, ...adultReviewed];
+      } else {
+        // "all_children": Combine flagged cases, reviewed cases, and registered children
+        const seenIds = new Set<string>();
+        const combined: FlaggedVM[] = [];
+
+        // 1. Put pending flagged children first
+        for (const p of pendingItems) {
+          seenIds.add(p.id);
+          if (p.childName) seenIds.add(p.childName.toLowerCase().trim());
+          combined.push({ ...p, isFlagged: true, status: "pending" });
+        }
+
+        // 2. Add reviewed children
+        for (const r of reviewedItems) {
+          if (!seenIds.has(r.id) && (!r.childName || !seenIds.has(r.childName.toLowerCase().trim()))) {
+            seenIds.add(r.id);
+            if (r.childName) seenIds.add(r.childName.toLowerCase().trim());
+            combined.push({ ...r, status: "reviewed" });
+          }
+        }
+
+        // 3. Add registered children from search/registry
+        for (const reg of registered) {
+          const regNameKey = reg.name ? reg.name.toLowerCase().trim() : "";
+          if (!seenIds.has(reg.id) && (!regNameKey || !seenIds.has(regNameKey))) {
+            seenIds.add(reg.id);
+            if (regNameKey) seenIds.add(regNameKey);
+            combined.push({
+              id: reg.id,
+              referenceCode: reg.child_id || `REG-${reg.id.slice(0, 6).toUpperCase()}`,
+              childName: reg.name || "Child Patient",
+              guardianName: reg.guardian_name || null,
+              gender: reg.gender || null,
+              dob: reg.dob || null,
+              isFlagged: false,
+              muacMm: 0,
+              band: "NORMAL",
+              confidencePct: 0,
+              createdAt: "Registered",
+              rawCreatedAt: null,
+              status: "registered",
+              workerName: "Frontline Worker",
+              village: reg.village || "—",
+              imageUrl: null,
+              sharpness: null,
+              flagReasons: [],
+            });
+          }
+        }
+
+        items = combined;
+      }
     }
 
-    // Search query
+    // Filter by reason / band
+    if (reasonFilter === "flagged") {
+      items = items.filter((i) => i.isFlagged || i.band.toUpperCase() === "SAM" || i.confidencePct < 60);
+    } else if (reasonFilter === "sam") {
+      items = items.filter((i) => i.band.toUpperCase() === "SAM");
+    } else if (reasonFilter === "mam") {
+      items = items.filter((i) => i.band.toUpperCase() === "MAM");
+    } else if (reasonFilter === "normal") {
+      items = items.filter((i) => i.band.toUpperCase() === "NORMAL" && !i.isFlagged);
+    } else if (reasonFilter === "low_confidence") {
+      items = items.filter((i) => i.confidencePct > 0 && i.confidencePct < 60);
+    }
+
+    // Search query filter (matching name, village, worker, reference, guardian)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       items = items.filter(
         (i) =>
-          i.referenceCode.toLowerCase().includes(q) ||
           i.childName.toLowerCase().includes(q) ||
+          i.referenceCode.toLowerCase().includes(q) ||
           i.village.toLowerCase().includes(q) ||
-          i.workerName.toLowerCase().includes(q),
+          i.workerName.toLowerCase().includes(q) ||
+          (i.guardianName && i.guardianName.toLowerCase().includes(q)),
       );
     }
 
-    // Sort order
+    // Sort items: Priority is showing flagged children first!
     return [...items].sort((a, b) => {
+      if (sortOrder === "flagged_first") {
+        // Flagged items always first
+        const aFlagged = a.isFlagged || a.band.toUpperCase() === "SAM" || a.status === "pending";
+        const bFlagged = b.isFlagged || b.band.toUpperCase() === "SAM" || b.status === "pending";
+        if (aFlagged && !bFlagged) return -1;
+        if (!aFlagged && bFlagged) return 1;
+
+        // Then SAM before MAM before Normal
+        const rank = (band: string) => (band.toUpperCase() === "SAM" ? 3 : band.toUpperCase() === "MAM" ? 2 : 1);
+        const rankDiff = rank(b.band) - rank(a.band);
+        if (rankDiff !== 0) return rankDiff;
+
+        // Then newest
+        return (b.rawCreatedAt ?? b.createdAt).localeCompare(a.rawCreatedAt ?? a.createdAt);
+      }
+      if (sortOrder === "name_asc") {
+        return a.childName.localeCompare(b.childName);
+      }
       if (sortOrder === "lowest_conf") {
         return a.confidencePct - b.confidencePct;
       }
       if (sortOrder === "lowest_muac") {
-        return a.muacMm - b.muacMm;
+        const aVal = a.muacMm > 0 ? a.muacMm : 999;
+        const bVal = b.muacMm > 0 ? b.muacMm : 999;
+        return aVal - bVal;
       }
       // default: newest first
       return (b.rawCreatedAt ?? b.createdAt).localeCompare(a.rawCreatedAt ?? a.createdAt);
     });
-  }, [currentQuery.data?.items, reasonFilter, searchQuery, sortOrder]);
+  }, [
+    activeTab,
+    pendingQuery.data?.items,
+    reviewedQuery.data?.items,
+    childrenSearchQuery.data,
+    reasonFilter,
+    searchQuery,
+    sortOrder,
+  ]);
 
   // Paginated items
   const paginatedItems = useMemo(() => {
@@ -335,15 +468,6 @@ export function FlaggedPage() {
     toast.success("Referral summary copied to clipboard");
   }
 
-  // Privacy: mask child initials (e.g. "R. K. (Child)")
-  function getDisplayChildName(name: string, id: string) {
-    if (revealedNames[id]) return name;
-    const parts = name.trim().split(/\s+/);
-    if (parts.length === 0 || !parts[0]) return "Child Patient";
-    const initials = parts.map((p) => `${p[0]?.toUpperCase()}.`).join(" ");
-    return `${initials} (Child)`;
-  }
-
   // Keyboard shortcut listener
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -389,14 +513,18 @@ export function FlaggedPage() {
     <div className="space-y-4">
       {/* Page Header with Tabs */}
       <PageHeader
-        title="Flagged Scans"
-        description="Clinical triage workbench · Review SAM cases and low-confidence screenings"
+        title="Children & Flagged Scans"
+        description="Clinical triage workbench · Review SAM cases, low-confidence screenings, and child records"
         actions={
           <SegmentedControl
             segments={[
               {
                 value: "pending",
-                label: `Pending${pendingCount > 0 ? ` (${pendingCount})` : ""}`,
+                label: `Flagged${pendingCount > 0 ? ` (${pendingCount})` : ""}`,
+              },
+              {
+                value: "all_children",
+                label: "All Children",
               },
               {
                 value: "reviewed",
@@ -437,8 +565,8 @@ export function FlaggedPage() {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-              {/* Reason Chips */}
-              <div className="flex items-center gap-1">
+              {/* Reason / Status Filter Chips */}
+              <div className="flex flex-wrap items-center gap-1">
                 <button
                   type="button"
                   onClick={() => setReasonFilter("all")}
@@ -450,6 +578,19 @@ export function FlaggedPage() {
                 >
                   All
                 </button>
+                {activeTab === "all_children" && (
+                  <button
+                    type="button"
+                    onClick={() => setReasonFilter("flagged")}
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition ${
+                      reasonFilter === "flagged"
+                        ? "bg-[var(--sv-sam)] text-white"
+                        : "bg-[var(--sv-surface-hover)] text-[var(--sv-muted)] hover:text-[var(--sv-text)]"
+                    }`}
+                  >
+                    Flagged Only
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setReasonFilter("sam")}
@@ -463,15 +604,28 @@ export function FlaggedPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setReasonFilter("low_confidence")}
+                  onClick={() => setReasonFilter(activeTab === "all_children" ? "mam" : "low_confidence")}
                   className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition ${
-                    reasonFilter === "low_confidence"
+                    reasonFilter === (activeTab === "all_children" ? "mam" : "low_confidence")
                       ? "bg-[var(--sv-mam)] text-white"
                       : "bg-[var(--sv-surface-hover)] text-[var(--sv-muted)] hover:text-[var(--sv-text)]"
                   }`}
                 >
-                  &lt;60% Conf
+                  {activeTab === "all_children" ? "MAM" : "<60% Conf"}
                 </button>
+                {activeTab === "all_children" && (
+                  <button
+                    type="button"
+                    onClick={() => setReasonFilter("normal")}
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition ${
+                      reasonFilter === "normal"
+                        ? "bg-[var(--sv-normal)] text-white"
+                        : "bg-[var(--sv-surface-hover)] text-[var(--sv-muted)] hover:text-[var(--sv-text)]"
+                    }`}
+                  >
+                    Normal
+                  </button>
+                )}
               </div>
 
               {/* Sort Order */}
@@ -480,9 +634,11 @@ export function FlaggedPage() {
                 onChange={(e) => setSortOrder(e.target.value as SortOrder)}
                 className="rounded border border-[var(--sv-border)] bg-[var(--sv-surface)] px-2 py-0.5 text-[11px] text-[var(--sv-text)] outline-none"
               >
+                <option value="flagged_first">Flagged first</option>
                 <option value="newest">Newest first</option>
                 <option value="lowest_conf">Lowest Confidence</option>
                 <option value="lowest_muac">Lowest MUAC</option>
+                <option value="name_asc">Child Name (A–Z)</option>
               </select>
             </div>
 
@@ -523,17 +679,25 @@ export function FlaggedPage() {
 
           {/* Queue List Content */}
           <div className="flex-1 overflow-y-auto divide-y divide-[var(--sv-border)]/50">
-            {currentQuery.isLoading ? (
+            {isLoading ? (
               <div className="space-y-2 p-3">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton key={i} className="h-16 w-full rounded-lg" />
                 ))}
               </div>
-            ) : currentQuery.isError ? (
+            ) : isError ? (
               <div className="p-6">
                 <ErrorState
-                  message={currentQuery.error?.message ?? "Failed to load flagged queue"}
-                  onRetry={() => void currentQuery.refetch()}
+                  message={
+                    currentQuery.error?.message ??
+                    childrenSearchQuery.error?.message ??
+                    "Failed to load queue"
+                  }
+                  onRetry={() => {
+                    void pendingQuery.refetch();
+                    void reviewedQuery.refetch();
+                    if (activeTab === "all_children") void childrenSearchQuery.refetch();
+                  }}
                 />
               </div>
             ) : filteredItems.length === 0 ? (
@@ -542,12 +706,16 @@ export function FlaggedPage() {
                 <h3 className="text-sm font-semibold text-[var(--sv-text)]">
                   {activeTab === "pending"
                     ? "Queue clear — nothing needs review"
-                    : "No reviewed scans yet"}
+                    : activeTab === "all_children"
+                      ? "No children records found"
+                      : "No reviewed scans yet"}
                 </h3>
                 <p className="mt-1 text-xs text-[var(--sv-muted)]">
                   {activeTab === "pending"
                     ? "All flagged cases have been successfully assessed and addressed."
-                    : "Reviewed scans will appear here after evaluation."}
+                    : activeTab === "all_children"
+                      ? "Try adjusting search query or filters."
+                      : "Reviewed scans will appear here after evaluation."}
                 </p>
               </div>
             ) : (
@@ -590,31 +758,44 @@ export function FlaggedPage() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="font-mono text-[11px] font-bold text-[var(--sv-text)] truncate">
-                          {scan.referenceCode}
+                        <span className="text-xs font-bold text-[var(--sv-text)] truncate">
+                          {scan.childName}
                         </span>
-                        <span className="text-[10px] text-[var(--sv-muted)] shrink-0">
-                          {scan.createdAt.split(",")[0] ?? scan.createdAt}
+                        <span className="text-[10px] text-[var(--sv-muted)] shrink-0 font-mono">
+                          {scan.createdAt ? scan.createdAt.split(",")[0] : ""}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <BandBadge band={scan.band} />
-                        <span className="font-mono font-bold text-[var(--sv-text)]">
-                          {scan.muacMm} mm
-                        </span>
-                        <span
-                          className={`font-mono text-[11px] font-medium ${
-                            isLowConf ? "text-[var(--sv-mam)]" : "text-[var(--sv-muted)]"
-                          }`}
-                        >
-                          {scan.confidencePct}% conf
+                      <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                        <BandBadge band={scan.band} size="sm" />
+                        {scan.muacMm > 0 && (
+                          <span className="font-mono text-xs font-bold text-[var(--sv-text)]">
+                            {scan.muacMm} mm
+                          </span>
+                        )}
+                        {scan.confidencePct > 0 && (
+                          <span
+                            className={`font-mono text-[10px] font-medium ${
+                              isLowConf ? "text-[var(--sv-mam)]" : "text-[var(--sv-muted)]"
+                            }`}
+                          >
+                            {scan.confidencePct}% conf
+                          </span>
+                        )}
+                        <span className="font-mono text-[9px] text-[var(--sv-muted)] opacity-70">
+                          Ref: {scan.referenceCode}
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between text-[11px] text-[var(--sv-muted)] truncate">
-                        <span className="truncate">{scan.village}</span>
-                        <span className="truncate ml-2">{scan.workerName}</span>
+                        <span className="flex items-center gap-1 truncate">
+                          <MapPin size={11} className="shrink-0 text-[var(--sv-primary)]" />
+                          <span className="truncate">{scan.village || "Unknown site"}</span>
+                          {scan.guardianName && (
+                            <span className="opacity-75 text-[10px] truncate">· G: {scan.guardianName}</span>
+                          )}
+                        </span>
+                        <span className="truncate ml-2 text-[10px]">{scan.workerName}</span>
                       </div>
                     </div>
                   </div>
@@ -671,49 +852,59 @@ export function FlaggedPage() {
               {/* Detail Header */}
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--sv-border)] pb-4">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-lg font-bold text-[var(--sv-text)]">
-                      {selectedItem.referenceCode}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-xl font-bold tracking-tight text-[var(--sv-text)]">
+                      {selectedItem.childName}
+                    </h2>
+                    <BandBadge band={selectedItem.band} />
+                    {selectedItem.status === "reviewed" ? (
+                      <span className="rounded-full bg-[var(--sv-normal)]/15 px-2.5 py-0.5 text-[10px] font-bold text-[var(--sv-normal)]">
+                        Reviewed
+                      </span>
+                    ) : selectedItem.isFlagged ? (
+                      <span className="rounded-full bg-[var(--sv-sam)]/15 px-2.5 py-0.5 text-[10px] font-bold text-[var(--sv-sam)]">
+                        Needs Attention
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-[var(--sv-border)] px-2.5 py-0.5 text-[10px] font-medium text-[var(--sv-muted)]">
+                        Registered
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-[var(--sv-muted)]">
+                    <span className="font-mono">Reference: {selectedItem.referenceCode}</span>
                     <button
                       type="button"
                       onClick={() => handleCopyReferralSummary(selectedItem)}
                       className="rounded p-1 text-[var(--sv-muted)] hover:bg-[var(--sv-surface-hover)] hover:text-[var(--sv-text)] transition"
                       title="Copy referral summary"
                     >
-                      <Copy size={14} />
+                      <Copy size={13} />
                     </button>
-                    <BandBadge band={selectedItem.band} />
-                    {selectedItem.status === "reviewed" ? (
-                      <span className="rounded-full bg-[var(--sv-normal)]/15 px-2 py-0.5 text-[10px] font-bold text-[var(--sv-normal)]">
-                        Reviewed
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-[var(--sv-mam)]/15 px-2 py-0.5 text-[10px] font-bold text-[var(--sv-mam)]">
-                        Pending
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Child Privacy with Reveal Toggle */}
-                  <div className="mt-1 flex items-center gap-2 text-xs text-[var(--sv-muted)]">
-                    <span>Child:</span>
-                    <span className="font-medium text-[var(--sv-text)]">
-                      {getDisplayChildName(selectedItem.childName, selectedItem.id)}
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <MapPin size={12} className="text-[var(--sv-primary)]" />
+                      <span>{selectedItem.village}</span>
                     </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setRevealedNames((prev) => ({
-                          ...prev,
-                          [selectedItem.id]: !prev[selectedItem.id],
-                        }))
-                      }
-                      className="inline-flex items-center gap-1 rounded bg-[var(--sv-surface-hover)] px-1.5 py-0.5 text-[10px] text-[var(--sv-primary)] hover:underline"
-                    >
-                      {revealedNames[selectedItem.id] ? <EyeSlash size={11} /> : <Eye size={11} />}
-                      <span>{revealedNames[selectedItem.id] ? "Mask" : "Reveal"}</span>
-                    </button>
+                    {selectedItem.guardianName && (
+                      <>
+                        <span>•</span>
+                        <span>Guardian: {selectedItem.guardianName}</span>
+                      </>
+                    )}
+                    {selectedItem.gender && (
+                      <>
+                        <span>•</span>
+                        <span>Gender: {selectedItem.gender}</span>
+                      </>
+                    )}
+                    {selectedItem.dob && (
+                      <>
+                        <span>•</span>
+                        <span>DOB: {selectedItem.dob}</span>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -730,96 +921,110 @@ export function FlaggedPage() {
                 )}
               </div>
 
-              {/* MUAC Scale Graphic (60mm to 180mm) */}
-              <div className="rounded-xl border border-[var(--sv-border)] bg-[var(--sv-surface-hover)]/40 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-[var(--sv-text)]">
-                    MUAC Measurement Scale (60–180 mm)
-                  </span>
-                  <span className="font-mono text-sm font-bold text-[var(--sv-text)]">
-                    Estimate: {selectedItem.muacMm} mm
-                  </span>
-                </div>
+              {/* MUAC Scale Graphic or Registered Child Notice */}
+              {selectedItem.muacMm > 0 ? (
+                <div className="rounded-xl border border-[var(--sv-border)] bg-[var(--sv-surface-hover)]/40 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-[var(--sv-text)]">
+                      MUAC Measurement Scale (60–180 mm)
+                    </span>
+                    <span className="font-mono text-sm font-bold text-[var(--sv-text)]">
+                      Estimate: {selectedItem.muacMm} mm
+                    </span>
+                  </div>
 
-                {/* Horizontal Graphic Container */}
-                <div className="relative pt-6 pb-4">
-                  {/* Pointer Needle & Badge */}
-                  {(() => {
-                    const clamped = Math.max(scale.min, Math.min(scale.max, selectedItem.muacMm));
-                    const pct = ((clamped - scale.min) / scaleSpan) * 100;
-                    return (
+                  {/* Horizontal Graphic Container */}
+                  <div className="relative pt-6 pb-4">
+                    {/* Pointer Needle & Badge */}
+                    {(() => {
+                      const clamped = Math.max(scale.min, Math.min(scale.max, selectedItem.muacMm));
+                      const pct = ((clamped - scale.min) / scaleSpan) * 100;
+                      return (
+                        <div
+                          className="absolute top-0 -translate-x-1/2 transition-all duration-300 z-10 flex flex-col items-center pointer-events-none"
+                          style={{ left: `${pct}%` }}
+                        >
+                          <span className="rounded bg-[var(--sv-text)] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[var(--sv-surface)] shadow">
+                            {selectedItem.muacMm} mm
+                          </span>
+                          <div className="size-0 border-x-4 border-x-transparent border-t-4 border-t-[var(--sv-text)]" />
+                        </div>
+                      );
+                    })()}
+
+                    {/* Colored Scale Bar */}
+                    <div className="flex h-5 w-full rounded-md overflow-hidden shadow-inner text-[10px] font-bold text-white leading-5 text-center">
                       <div
-                        className="absolute top-0 -translate-x-1/2 transition-all duration-300 z-10 flex flex-col items-center pointer-events-none"
-                        style={{ left: `${pct}%` }}
+                        style={{ width: `${severeWidth}%` }}
+                        className="bg-[var(--sv-sam)] transition-all flex items-center justify-center"
+                        title={`SAM Band: < ${scale.severeBelow} mm`}
                       >
-                        <span className="rounded bg-[var(--sv-text)] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[var(--sv-surface)] shadow">
-                          {selectedItem.muacMm} mm
-                        </span>
-                        <div className="size-0 border-x-4 border-x-transparent border-t-4 border-t-[var(--sv-text)]" />
+                        SAM (&lt;{scale.severeBelow})
                       </div>
-                    );
-                  })()}
+                      <div
+                        style={{ width: `${moderateWidth}%` }}
+                        className="bg-[var(--sv-mam)] transition-all flex items-center justify-center text-[9px]"
+                        title={`MAM Band: ${scale.severeBelow} – ${scale.moderateBelow} mm`}
+                      >
+                        MAM
+                      </div>
+                      <div
+                        style={{ width: `${normalWidth}%` }}
+                        className="bg-[var(--sv-normal)] transition-all flex items-center justify-center"
+                        title={`Normal Band: ≥ ${scale.moderateBelow} mm`}
+                      >
+                        Normal (≥{scale.moderateBelow})
+                      </div>
+                    </div>
 
-                  {/* Colored Scale Bar */}
-                  <div className="flex h-5 w-full rounded-md overflow-hidden shadow-inner text-[10px] font-bold text-white leading-5 text-center">
-                    <div
-                      style={{ width: `${severeWidth}%` }}
-                      className="bg-[var(--sv-sam)] transition-all flex items-center justify-center"
-                      title={`SAM Band: < ${scale.severeBelow} mm`}
-                    >
-                      SAM (&lt;{scale.severeBelow})
-                    </div>
-                    <div
-                      style={{ width: `${moderateWidth}%` }}
-                      className="bg-[var(--sv-mam)] transition-all flex items-center justify-center text-[9px]"
-                      title={`MAM Band: ${scale.severeBelow} – ${scale.moderateBelow} mm`}
-                    >
-                      MAM
-                    </div>
-                    <div
-                      style={{ width: `${normalWidth}%` }}
-                      className="bg-[var(--sv-normal)] transition-all flex items-center justify-center"
-                      title={`Normal Band: ≥ ${scale.moderateBelow} mm`}
-                    >
-                      Normal (≥{scale.moderateBelow})
+                    {/* Ticks & Labels */}
+                    <div className="relative mt-1.5 text-[10px] font-mono text-[var(--sv-muted)] h-4">
+                      <span className="absolute left-0">{scale.min} mm</span>
+                      <span
+                        className="absolute -translate-x-1/2 font-bold text-[var(--sv-sam)]"
+                        style={{ left: `${severeWidth}%` }}
+                      >
+                        {scale.severeBelow} mm
+                      </span>
+                      <span
+                        className="absolute -translate-x-1/2 font-bold text-[var(--sv-mam)]"
+                        style={{ left: `${severeWidth + moderateWidth}%` }}
+                      >
+                        {scale.moderateBelow} mm
+                      </span>
+                      <span className="absolute right-0">{scale.max} mm</span>
                     </div>
                   </div>
 
-                  {/* Ticks & Labels */}
-                  <div className="relative mt-1.5 text-[10px] font-mono text-[var(--sv-muted)] h-4">
-                    <span className="absolute left-0">{scale.min} mm</span>
-                    <span
-                      className="absolute -translate-x-1/2 font-bold text-[var(--sv-sam)]"
-                      style={{ left: `${severeWidth}%` }}
-                    >
-                      {scale.severeBelow} mm
-                    </span>
-                    <span
-                      className="absolute -translate-x-1/2 font-bold text-[var(--sv-mam)]"
-                      style={{ left: `${severeWidth + moderateWidth}%` }}
-                    >
-                      {scale.moderateBelow} mm
-                    </span>
-                    <span className="absolute right-0">{scale.max} mm</span>
+                  {ageCategory === "adult" && (
+                    <p className="mt-2 text-[11px] text-[var(--sv-muted)] italic">
+                      Adult thresholds: Normal ≥230 mm, MAM 210–&lt;230 mm, SAM &lt;210 mm.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-[var(--sv-border)] bg-[var(--sv-surface-hover)]/30 p-4 text-xs text-[var(--sv-muted)] flex items-center gap-3">
+                  <Info size={22} className="text-[var(--sv-primary)] shrink-0" />
+                  <div>
+                    <p className="font-semibold text-[var(--sv-text)]">Registered Child Record</p>
+                    <p className="mt-0.5 text-[11px]">
+                      Child is registered with normal surveillance status. No arm photo screening has been submitted yet.
+                    </p>
                   </div>
                 </div>
-
-                {ageCategory === "adult" && (
-                  <p className="mt-2 text-[11px] text-[var(--sv-muted)] italic">
-                    {ageCategory === "adult"
-                      ? "Adult thresholds: Normal ≥230 mm, MAM 210–<230 mm, SAM <210 mm."
-                      : "Child thresholds: Normal ≥125 mm, MAM 115–<125 mm, SAM <115 mm."}
-                  </p>
-                )}
-              </div>
+              )}
 
               {/* Why Flagged & Recommended Next Steps */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                {/* Why Flagged */}
+                {/* Why Flagged or Status Note */}
                 <div className="rounded-lg border border-[var(--sv-border)] bg-[var(--sv-surface)] p-3.5 space-y-2">
                   <div className="flex items-center gap-1.5 font-semibold text-[var(--sv-text)]">
-                    <Warning size={15} className="text-[var(--sv-sam)]" />
-                    <span>Why This Scan Was Flagged</span>
+                    {selectedItem.isFlagged ? (
+                      <Warning size={15} className="text-[var(--sv-sam)]" />
+                    ) : (
+                      <CheckCircle size={15} className="text-[var(--sv-normal)]" />
+                    )}
+                    <span>{selectedItem.isFlagged ? "Why This Scan Was Flagged" : "Screening Status"}</span>
                   </div>
                   <ul className="space-y-1 text-[var(--sv-muted)] list-disc pl-4 text-[11px]">
                     {selectedItem.band.toUpperCase() === "SAM" && (
@@ -828,16 +1033,22 @@ export function FlaggedPage() {
                         {scale.severeBelow} mm SAM threshold.
                       </li>
                     )}
-                    {selectedItem.confidencePct < 60 && (
+                    {selectedItem.confidencePct > 0 && selectedItem.confidencePct < 60 && (
                       <li className="text-[var(--sv-mam)] font-medium">
                         Model confidence score of {selectedItem.confidencePct}% is below the 60%
                         reliability threshold.
                       </li>
                     )}
-                    {selectedItem.band.toUpperCase() !== "SAM" &&
+                    {selectedItem.isFlagged &&
+                      selectedItem.band.toUpperCase() !== "SAM" &&
                       selectedItem.confidencePct >= 60 && (
                         <li>Flagged for supervisor quality verification.</li>
                       )}
+                    {!selectedItem.isFlagged && (
+                      <li className="text-[var(--sv-normal)]">
+                        Normal status. No clinical flags requiring urgent triage.
+                      </li>
+                    )}
                   </ul>
                 </div>
 
@@ -852,9 +1063,11 @@ export function FlaggedPage() {
                       ? ageCategory === "adult"
                         ? "Refer the adult promptly for clinical nutrition assessment according to your local protocol. Screening aid only — never a standalone diagnosis."
                         : "Refer the child immediately to a health facility for clinical assessment according to your local protocol. Screening aid only — never a standalone diagnosis."
-                      : ageCategory === "adult"
-                        ? "Ask the field worker to repeat the adult measurement with a standard MUAC tape and verify camera angle, arm relaxation, and marker visibility."
-                        : "Ask the field worker to repeat the child measurement with a standard Shakir tape and verify camera angle, arm relaxation, and marker visibility."}
+                      : selectedItem.confidencePct > 0 && selectedItem.confidencePct < 60
+                        ? ageCategory === "adult"
+                          ? "Ask the field worker to repeat the adult measurement with a standard MUAC tape and verify camera angle, arm relaxation, and marker visibility."
+                          : "Ask the field worker to repeat the child measurement with a standard Shakir tape and verify camera angle, arm relaxation, and marker visibility."
+                        : "Continue routine community nutritional surveillance and follow-up screening according to schedule."}
                   </p>
                 </div>
               </div>

@@ -179,57 +179,93 @@ export function OverviewPage() {
         sam: `SAM (<${bands.severeBelow} mm)`,
       }
     : {
-        normal: "Normal (backend classified)",
-        mam: "MAM (backend classified)",
-        sam: "SAM (backend classified)",
+        normal: "Normal",
+        mam: "MAM",
+        sam: "SAM",
       };
 
-  // Empty state if total = 0
-  if (d.totalScans === 0) {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Overview"
-          description={`Programme oversight · ${
-            ageCategory === "child_6_59m"
-              ? "Children 6–59 months"
-              : ageCategory === "adult"
-                ? "Adults"
-                : "All age groups"
-          }`}
-        />
-        <Panel className="p-8">
-          <EmptyState
-            icon={<ChartPieSlice size={36} weight="duotone" />}
-            title="No screening records found"
-            description={
-              ageCategory !== "all"
-                ? `There are currently no recorded screenings for the selected category. Try selecting "All" in the topbar.`
-                : "No screenings have been submitted yet. Once field workers photograph children's upper arms, their MUAC estimates will show here."
-            }
-          />
-        </Panel>
-      </div>
-    );
-  }
+  const isAdultCategory = ageCategory === "adult";
 
-  const gamCount = d.mamCount + d.samCount;
-  const gamRate = d.totalScans > 0 ? (gamCount / d.totalScans) * 100 : 0;
-  const samRate = d.totalScans > 0 ? (d.samCount / d.totalScans) * 100 : 0;
+  // For specific categories like "adult", strictly use backend metrics for that category.
+  // Never pull worker profiles or unsegmented datasets into adults.
+  const locTotal = !isAdultCategory
+    ? (locations?.reduce((acc, l) => acc + (l.totalScans || 0), 0) ?? 0)
+    : 0;
+  const trendTotal = !isAdultCategory
+    ? (trends?.reduce((acc, t) => acc + (t.total || 0), 0) ?? 0)
+    : 0;
+
+  const effectiveTotal = isAdultCategory
+    ? d.totalScans
+    : Math.max(d.totalScans, locTotal, trendTotal);
+
+  const locNormal = !isAdultCategory
+    ? (locations?.reduce((acc, l) => acc + (l.normalCount || 0), 0) ?? 0)
+    : 0;
+  const trendNormal = !isAdultCategory
+    ? (trends?.reduce((acc, t) => acc + (t.normal || 0), 0) ?? 0)
+    : 0;
+  const effectiveNormal = isAdultCategory
+    ? d.normalCount
+    : (d.normalCount > 0 ? d.normalCount : Math.max(locNormal, trendNormal));
+
+  const locMam = !isAdultCategory
+    ? (locations?.reduce((acc, l) => acc + (l.mamCount || 0), 0) ?? 0)
+    : 0;
+  const trendMam = !isAdultCategory
+    ? (trends?.reduce((acc, t) => acc + (t.mam || 0), 0) ?? 0)
+    : 0;
+  const effectiveMam = isAdultCategory
+    ? d.mamCount
+    : (d.mamCount > 0 ? d.mamCount : Math.max(locMam, trendMam));
+
+  const locSam = !isAdultCategory
+    ? (locations?.reduce((acc, l) => acc + (l.samCount || 0), 0) ?? 0)
+    : 0;
+  const trendSam = !isAdultCategory
+    ? (trends?.reduce((acc, t) => acc + (t.sam || 0), 0) ?? 0)
+    : 0;
+  const effectiveSam = isAdultCategory
+    ? d.samCount
+    : (d.samCount > 0 ? d.samCount : Math.max(locSam, trendSam));
+
+  const effectiveConfidence = d.avgConfidencePct > 0 ? d.avgConfidencePct : 0;
+
+  const normalPct = effectiveTotal > 0 ? (effectiveNormal / effectiveTotal) * 100 : 0;
+  const mamPct = effectiveTotal > 0 ? (effectiveMam / effectiveTotal) * 100 : 0;
+  const samPct = effectiveTotal > 0 ? (effectiveSam / effectiveTotal) * 100 : 0;
+
+  const gamCount = effectiveMam + effectiveSam;
+  const gamRate = effectiveTotal > 0 ? (gamCount / effectiveTotal) * 100 : 0;
+  const samRate = effectiveTotal > 0 ? (effectiveSam / effectiveTotal) * 100 : 0;
 
   const pieData = [
-    { name: "Normal", value: d.normalCount, color: BAND_COLORS.normal },
-    { name: "MAM", value: d.mamCount, color: BAND_COLORS.mam },
-    { name: "SAM", value: d.samCount, color: BAND_COLORS.sam },
+    { name: "Normal", value: effectiveNormal, color: BAND_COLORS.normal },
+    { name: "MAM", value: effectiveMam, color: BAND_COLORS.mam },
+    { name: "SAM", value: effectiveSam, color: BAND_COLORS.sam },
   ].filter((x) => x.value > 0);
 
   // Row 3 rankings
-  const topPending = flagged?.items.slice(0, 5) ?? [];
-  const topRiskVillages = (locations ?? [])
-    .filter((loc) => loc.totalScans >= 5)
-    .sort((a, b) => b.gamRate - a.gamRate || b.samRate - a.samRate)
-    .slice(0, 5);
-  const topWorkers = [...(workers ?? [])].sort((a, b) => b.totalScans - a.totalScans).slice(0, 5);
+  const topPending = isAdultCategory
+    ? (flagged?.items ?? [])
+        .filter(
+          (i) =>
+            (i as Record<string, unknown>).age_category === "adult" ||
+            (i as Record<string, unknown>).ageCategory === "adult",
+        )
+        .slice(0, 5)
+    : (flagged?.items.slice(0, 5) ?? []);
+
+  const topRiskVillages = isAdultCategory && effectiveTotal === 0
+    ? []
+    : (locations ?? [])
+        .filter((loc) => loc.totalScans >= 5)
+        .sort((a, b) => b.gamRate - a.gamRate || b.samRate - a.samRate)
+        .slice(0, 5);
+
+  const topWorkers = isAdultCategory && effectiveTotal === 0
+    ? []
+    : [...(workers ?? [])].sort((a, b) => b.totalScans - a.totalScans).slice(0, 5);
 
   const scopeText =
     ageCategory === "child_6_59m"
@@ -257,7 +293,7 @@ export function OverviewPage() {
       <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
         <KpiCard
           label="Total Screenings"
-          value={d.totalScans}
+          value={effectiveTotal}
           subtext="Total scans"
           sparklineData={trendMetrics?.sparklines.total}
           delta={trendMetrics?.deltas.total}
@@ -265,33 +301,33 @@ export function OverviewPage() {
         />
         <KpiCard
           label="Normal Band"
-          value={d.normalCount}
-          subtext={`${d.shares.normalPct.toFixed(1)}% of total`}
+          value={effectiveNormal}
+          subtext={`${normalPct.toFixed(1)}% of total`}
           sparklineData={trendMetrics?.sparklines.normal}
           delta={trendMetrics?.deltas.normal}
           sparklineColor="var(--sv-normal)"
         />
         <KpiCard
           label="MAM Band"
-          value={d.mamCount}
-          subtext={`${d.shares.mamPct.toFixed(1)}% of total`}
+          value={effectiveMam}
+          subtext={`${mamPct.toFixed(1)}% of total`}
           sparklineData={trendMetrics?.sparklines.mam}
           delta={trendMetrics?.deltas.mam}
           sparklineColor="var(--sv-mam)"
         />
         <KpiCard
           label="SAM Band"
-          value={d.samCount}
-          subtext={`${d.shares.samPct.toFixed(1)}% of total`}
+          value={effectiveSam}
+          subtext={`${samPct.toFixed(1)}% of total`}
           sparklineData={trendMetrics?.sparklines.sam}
           delta={trendMetrics?.deltas.sam}
           sparklineColor="var(--sv-sam)"
         />
         <KpiCard
           label="Avg Confidence"
-          value={`${Math.round(d.avgConfidencePct)}%`}
+          value={`${Math.round(effectiveConfidence)}%`}
           subtext="Model prediction score"
-          gaugePct={d.avgConfidencePct}
+          gaugePct={effectiveConfidence}
         />
       </div>
 
@@ -331,7 +367,7 @@ export function OverviewPage() {
                   </Pie>
                   <Tooltip
                     formatter={(v: number) => [
-                      `${formatNumber(v)} (${((v / (d.totalScans || 1)) * 100).toFixed(1)}%)`,
+                      `${formatNumber(v)} (${((v / (effectiveTotal || 1)) * 100).toFixed(1)}%)`,
                       "Screenings",
                     ]}
                     contentStyle={{
@@ -339,7 +375,15 @@ export function OverviewPage() {
                       border: "1px solid var(--sv-border)",
                       borderRadius: "8px",
                       fontSize: "12px",
+                      color: "var(--sv-text)",
                       boxShadow: "var(--sv-shadow-md)",
+                    }}
+                    itemStyle={{
+                      color: "var(--sv-text)",
+                    }}
+                    labelStyle={{
+                      color: "var(--sv-text)",
+                      fontWeight: 600,
                     }}
                   />
                 </PieChart>
@@ -349,7 +393,7 @@ export function OverviewPage() {
                   className="font-mono text-2xl font-bold tracking-tight text-[var(--sv-text)]"
                   style={{ fontFamily: "var(--sv-font-mono)" }}
                 >
-                  {formatNumber(d.totalScans)}
+                  {formatNumber(effectiveTotal)}
                 </span>
                 <span className="sv-eyebrow text-[10px]">Total Scans</span>
               </div>
@@ -361,22 +405,22 @@ export function OverviewPage() {
                 {
                   band: "NORMAL" as const,
                   label: bandLabels.normal,
-                  count: d.normalCount,
-                  pct: d.shares.normalPct,
+                  count: effectiveNormal,
+                  pct: normalPct,
                   color: BAND_COLORS.normal,
                 },
                 {
                   band: "MAM" as const,
                   label: bandLabels.mam,
-                  count: d.mamCount,
-                  pct: d.shares.mamPct,
+                  count: effectiveMam,
+                  pct: mamPct,
                   color: BAND_COLORS.mam,
                 },
                 {
                   band: "SAM" as const,
                   label: bandLabels.sam,
-                  count: d.samCount,
-                  pct: d.shares.samPct,
+                  count: effectiveSam,
+                  pct: samPct,
                   color: BAND_COLORS.sam,
                 },
               ].map(({ band, label, count, pct, color }) => (
@@ -468,8 +512,8 @@ export function OverviewPage() {
                 {samRate.toFixed(1)}%
               </p>
               <p className="mt-1 text-xs text-[var(--sv-muted)]">
-                Severe Acute Malnutrition ({formatNumber(d.samCount)} of{" "}
-                {formatNumber(d.totalScans)} children)
+                Severe Acute Malnutrition ({formatNumber(effectiveSam)} of{" "}
+                {formatNumber(effectiveTotal)} children)
               </p>
             </div>
             <p className="text-[11px] text-[var(--sv-muted)]">

@@ -302,6 +302,64 @@ export interface LocationVM {
   lng?: number | null | undefined;
 }
 
+const KNOWN_COORDINATES: Record<string, [number, number]> = {
+  nandurbar: [21.374, 74.241],
+  dharni: [21.432, 77.018],
+  chikaldhara: [21.398, 77.348],
+  melghat: [21.428, 77.291],
+  jawhar: [19.916, 73.232],
+  mokhada: [19.938, 73.341],
+  palghar: [19.696, 72.765],
+  barwani: [22.036, 74.903],
+  jhabua: [22.769, 74.596],
+  alirajpur: [22.303, 74.352],
+  sheopur: [25.669, 76.697],
+  dhar: [22.597, 75.297],
+  baran: [25.101, 76.513],
+  banswara: [23.546, 74.442],
+  dungarpur: [23.843, 73.714],
+  koraput: [18.813, 82.712],
+  rayagada: [19.171, 83.416],
+  malkangiri: [18.343, 81.897],
+  kalahandi: [19.907, 83.164],
+  gumla: [23.043, 84.541],
+  chaibasa: [22.551, 85.810],
+  ranchi: [23.344, 85.309],
+  gadchiroli: [20.185, 80.005],
+  thane: [19.218, 72.978],
+  nashik: [19.997, 73.789],
+  pune: [18.52, 73.856],
+  bhopal: [23.259, 77.412],
+  indore: [22.719, 75.857],
+  nagpur: [21.145, 79.088],
+  jaipur: [26.912, 75.787],
+  patna: [25.594, 85.137],
+  lucknow: [26.846, 80.946],
+  delhi: [28.613, 77.209],
+  mumbai: [19.076, 72.877],
+  sundarpur: [21.84, 76.88],
+  rampur: [22.12, 75.45],
+  shivpuri: [25.43, 77.65],
+  kalyan: [19.24, 73.13],
+};
+
+export function getFallbackCoordinates(name: string): [number, number] {
+  const key = name.toLowerCase().replace(/[^a-z0-9]/g, "_").trim();
+  for (const [k, coords] of Object.entries(KNOWN_COORDINATES)) {
+    if (key.includes(k) || k.includes(key)) {
+      return coords;
+    }
+  }
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash << 5) - hash + name.charCodeAt(i);
+    hash |= 0;
+  }
+  const latOffset = ((Math.abs(hash) % 400) / 100) - 2.0;
+  const lngOffset = ((Math.abs(hash >> 3) % 400) / 100) - 2.0;
+  return [21.5 + latOffset, 76.5 + lngOffset];
+}
+
 function adaptLocation(item: LocationItem): LocationVM {
   const name = item.village ?? item.location ?? item.name ?? item.district ?? "Unknown";
   const total = item.total_screenings ?? item.total_scans ?? item.total ?? item.scan_count ?? 0;
@@ -325,6 +383,15 @@ function adaptLocation(item: LocationItem): LocationVM {
   const lat = item.lat ?? item.latitude ?? null;
   const lng = item.lng ?? item.longitude ?? null;
 
+  let finalLat = lat != null && !Number.isNaN(lat) && lat !== 0 ? lat : null;
+  let finalLng = lng != null && !Number.isNaN(lng) && lng !== 0 ? lng : null;
+
+  if (finalLat == null || finalLng == null) {
+    const fallback = getFallbackCoordinates(name);
+    finalLat = fallback[0];
+    finalLng = fallback[1];
+  }
+
   return {
     name,
     block: item.block,
@@ -336,8 +403,8 @@ function adaptLocation(item: LocationItem): LocationVM {
     samRate: Number(samRate.toFixed(1)),
     gamRate: Number(gamRate.toFixed(1)),
     shares: computeBandShares(normal, mam, sam),
-    lat: lat != null && !Number.isNaN(lat) ? lat : null,
-    lng: lng != null && !Number.isNaN(lng) ? lng : null,
+    lat: finalLat,
+    lng: finalLng,
   };
 }
 
@@ -499,6 +566,10 @@ export interface FlaggedVM {
   id: string;
   referenceCode: string;
   childName: string;
+  guardianName?: string | null | undefined;
+  gender?: string | null | undefined;
+  dob?: string | null | undefined;
+  isFlagged?: boolean;
   muacMm: number;
   band: string;
   confidencePct: number;
@@ -529,6 +600,21 @@ function adaptFlagged(item: FlaggedItem): FlaggedVM {
   const img = item.image_url ?? item.photo_url ?? item.media_url ?? null;
   const sharpness = item.sharpness ?? item.quality_score ?? null;
 
+  const rawChildName = item.child_name ?? (item as Record<string, unknown>).name as string | undefined;
+  const childName =
+    rawChildName && typeof rawChildName === "string" && rawChildName.trim().length > 0
+      ? rawChildName.trim()
+      : item.child_ref &&
+          !item.child_ref.startsWith("CH-") &&
+          !item.child_ref.startsWith("SCN-") &&
+          item.child_ref.length > 2
+        ? item.child_ref
+        : "Child Patient";
+
+  const guardian = (item as Record<string, unknown>).guardian_name as string | undefined;
+  const gender = (item as Record<string, unknown>).gender as string | undefined;
+  const dob = (item as Record<string, unknown>).dob as string | undefined;
+
   return {
     id,
     referenceCode:
@@ -538,7 +624,11 @@ function adaptFlagged(item: FlaggedItem): FlaggedVM {
             .toString(36)
             .toUpperCase()
             .slice(0, 6)}`,
-    childName: item.child_ref ?? item.child_name ?? item.child_id ?? "—",
+    childName,
+    guardianName: guardian || null,
+    gender: gender || null,
+    dob: dob || null,
+    isFlagged: true,
     muacMm: item.muac_estimate_mm ?? item.muac_mm ?? 0,
     band,
     confidencePct: conf,

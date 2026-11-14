@@ -132,12 +132,43 @@ export function LocationsPage() {
   const [tileError, setTileError] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
 
+  // Map API Key from .env (or optional localStorage fallback)
+  const mapKey = (
+    (typeof window !== "undefined" ? localStorage.getItem("poshan_map_api_key") : null) ||
+    (import.meta.env["VITE_MAP_API_KEY"] as string | undefined) ||
+    ""
+  ).trim();
+
   // Dark vs Light basemap URL
   const isDark = theme === "dark";
 
-  const tileUrl = isDark
-    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+  const { tileUrl, attribution } = useMemo(() => {
+    if (mapKey) {
+      if (mapKey.length > 18) {
+        // MapTiler free key (raster streets or dataviz dark)
+        return {
+          tileUrl: `https://api.maptiler.com/maps/${isDark ? "dataviz-dark" : "streets-v2"}/{z}/{x}/{y}.png?key=${mapKey}`,
+          attribution:
+            '&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        };
+      }
+      // Geoapify free key
+      return {
+        tileUrl: `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${mapKey}`,
+        attribution:
+          '&copy; <a href="https://www.geoapify.com/">Geoapify</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      };
+    }
+
+    // Default 100% free OSM tiles (no key required)
+    return {
+      tileUrl: isDark
+        ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    };
+  }, [mapKey, isDark]);
 
   // Aggregate locations based on grouping selection
   const aggregated = useMemo(() => {
@@ -145,22 +176,24 @@ export function LocationsPage() {
     return aggregateLocations(rawLocations, groupBy);
   }, [rawLocations, groupBy]);
 
-  // Valid coordinates check
+  // Valid coordinates check (only plot locations that have screenings for the active category)
   const { withCoords, withoutCoordsCount } = useMemo(() => {
     const valid: LocationVM[] = [];
     let invalidCount = 0;
     for (const loc of aggregated) {
-      if (
-        loc.lat != null &&
-        loc.lng != null &&
-        !Number.isNaN(loc.lat) &&
-        !Number.isNaN(loc.lng) &&
-        loc.lat !== 0 &&
-        loc.lng !== 0
-      ) {
-        valid.push(loc);
-      } else {
-        invalidCount++;
+      if (loc.totalScans > 0) {
+        if (
+          loc.lat != null &&
+          loc.lng != null &&
+          !Number.isNaN(loc.lat) &&
+          !Number.isNaN(loc.lng) &&
+          loc.lat !== 0 &&
+          loc.lng !== 0
+        ) {
+          valid.push(loc);
+        } else {
+          invalidCount++;
+        }
       }
     }
     return { withCoords: valid, withoutCoordsCount: invalidCount };
@@ -170,6 +203,10 @@ export function LocationsPage() {
   const filteredList = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = aggregated;
+
+    if (ageCategory === "adult") {
+      list = list.filter((loc) => loc.totalScans > 0);
+    }
 
     if (q) {
       list = list.filter(
@@ -185,7 +222,7 @@ export function LocationsPage() {
       if (sortBy === "volume_desc") return b.totalScans - a.totalScans;
       return a.name.localeCompare(b.name);
     });
-  }, [aggregated, search, sortBy]);
+  }, [aggregated, search, sortBy, ageCategory]);
 
   // Max volume for normalization
   const maxVolume = useMemo(() => {
@@ -422,7 +459,8 @@ export function LocationsPage() {
               scrollWheelZoom={true}
             >
               <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                key={tileUrl}
+                attribution={attribution}
                 url={tileUrl}
                 eventHandlers={{
                   tileerror: () => setTileError(true),

@@ -19,7 +19,6 @@ import {
   Baby,
   User,
   UsersFour,
-  Broadcast,
 } from "@phosphor-icons/react";
 import { useSvAuth, useSvLogout, isSessionValid } from "../store/auth";
 import { useSvPrefs } from "../store/prefs";
@@ -419,26 +418,6 @@ function Topbar({
   );
 }
 
-// ── Demo banner ───────────────────────────────────────────────────────────────
-
-function DemoBanner({ ageCategory }: { ageCategory: AgeCategory }) {
-  if (ageCategory === "child_6_59m") return null;
-  return (
-    <div
-      className="flex items-center gap-2 px-5 py-2 text-xs font-medium"
-      style={{
-        background: "var(--sv-mam-sf)",
-        color: "var(--sv-mam)",
-        borderBottom: "1px solid color-mix(in srgb, var(--sv-mam) 20%, transparent)",
-      }}
-      role="status"
-    >
-      <Broadcast size={14} weight="fill" className="shrink-0" />
-      Demo data included — Normal / MAM / SAM bands apply to children 6–59 months only.
-    </div>
-  );
-}
-
 // ── AppShell ──────────────────────────────────────────────────────────────────
 
 interface AppShellProps {
@@ -668,9 +647,6 @@ export function AppShell({ title, children }: AppShellProps) {
           theme={theme}
           onToggleTheme={toggleTheme}
         />
-        <div className="print:hidden">
-          <DemoBanner ageCategory={ageCategory} />
-        </div>
         <main className="flex-1 overflow-y-auto p-6 print:p-0 print:overflow-visible">
           {children}
         </main>

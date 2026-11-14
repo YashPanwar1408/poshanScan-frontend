@@ -25,7 +25,7 @@ export const useSvPrefs = create<SvPrefsState>()(
     (set) => ({
       theme: "light" as SvTheme,
       sidebarCollapsed: false,
-      ageCategory: "child_6_59m" as AgeCategory,
+      ageCategory: "all" as AgeCategory,
       setTheme: (t) => set({ theme: t }),
       toggleTheme: () => set((s) => ({ theme: s.theme === "light" ? "dark" : "light" })),
       setSidebarCollapsed: (v) => set({ sidebarCollapsed: v }),

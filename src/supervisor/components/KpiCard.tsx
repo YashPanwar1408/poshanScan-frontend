@@ -20,14 +20,23 @@ export interface KpiCardProps {
 }
 
 function useCountUp(target: number, animate: boolean) {
-  const [display, setDisplay] = useState(0);
-  const startedRef = useRef(false);
+  const [display, setDisplay] = useState(target);
+  const currentDisplayRef = useRef(display);
+  currentDisplayRef.current = display;
 
   useEffect(() => {
-    if (!animate || startedRef.current) return;
-    startedRef.current = true;
+    if (!animate) {
+      setDisplay(target);
+      return;
+    }
 
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const startVal = currentDisplayRef.current;
+    const endVal = target;
+    if (startVal === endVal) return;
+
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (prefersReduced) {
       setDisplay(target);
       return;
@@ -35,14 +44,20 @@ function useCountUp(target: number, animate: boolean) {
 
     const duration = 800;
     const start = Date.now();
-    const raf = requestAnimationFrame(function step() {
+    let rafId: number;
+
+    function step() {
       const elapsed = Date.now() - start;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(eased * target));
-      if (progress < 1) requestAnimationFrame(step);
-    });
-    return () => cancelAnimationFrame(raf);
+      setDisplay(Math.round(startVal + (endVal - startVal) * eased));
+      if (progress < 1) {
+        rafId = requestAnimationFrame(step);
+      }
+    }
+
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
   }, [target, animate]);
 
   return display;

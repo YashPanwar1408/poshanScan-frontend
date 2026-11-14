@@ -179,3 +179,33 @@ export function useReviewFlagged() {
     mutationFn: (id: string) => svClient.post(ENDPOINTS.flaggedReview(id)).then((r) => r.data),
   });
 }
+
+// ── Registered Children Search ────────────────────────────────────────────────
+
+export interface RegisteredChildVM {
+  id: string;
+  child_id?: string;
+  name: string;
+  dob?: string;
+  gender?: string;
+  guardian_name?: string | null;
+  village?: string | null;
+}
+
+export function useChildrenSearch(query = "") {
+  return useQuery<RegisteredChildVM[], ApiError>({
+    queryKey: ["sv", "children-search", query],
+    queryFn: async () => {
+      try {
+        const { data } = await svClient.get("/children/search", {
+          params: { q: query.trim().slice(0, 100) },
+        });
+        return Array.isArray(data) ? data : (data?.children ?? []);
+      } catch (e) {
+        console.warn("Children search fallback:", e);
+        return [];
+      }
+    },
+    staleTime: STALE,
+  });
+}

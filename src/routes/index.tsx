@@ -18,7 +18,6 @@ import {
   LockKey,
 } from "@phosphor-icons/react";
 
-import { UtilityBar } from "@/components/UtilityBar";
 import { TEAM_MEMBERS } from "@/data/team";
 
 import childPoseGuide from "@/assets/child_muac_screening.jpg";
@@ -249,9 +248,6 @@ export function Landing() {
       >
         Skip to main content
       </a>
-
-      {/* ── Accessibility & Font Scale Strip ── */}
-      <UtilityBar />
 
       {/* ── Main Site Header ── */}
       <header className="sticky top-0 z-40 border-b border-[var(--sv-border,#D4D0C8)] bg-[var(--sv-bg,#FAF9F6)]/95 backdrop-blur-md">

@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, ClipboardList, LockKeyhole, Phone, Users } from 
 import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { errorMessage, loginSchema } from "@/lib/api";
+import { errorMessage, loginSchema, signupSchema } from "@/lib/api";
 
 type LoginRole = "worker" | "supervisor";
 
@@ -39,17 +39,21 @@ const roleCopy = {
 
 export function RoleLogin({ role }: { role: LoginRole }) {
   const copy = roleCopy[role];
-  const { login } = useAuth();
+  const { login, registerWorker } = useAuth();
   const navigate = useNavigate();
+  const [signup, setSignup] = useState(false);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError("");
-    const checked = loginSchema.safeParse({ phone, password });
+    const checked = signup
+      ? signupSchema.safeParse({ phone, password, confirmPassword })
+      : loginSchema.safeParse({ phone, password });
     if (!checked.success) {
       setError(checked.error.issues[0]?.message || "Please check your details.");
       return;
@@ -57,7 +61,9 @@ export function RoleLogin({ role }: { role: LoginRole }) {
 
     setBusy(true);
     try {
-      const user = await login(checked.data.phone, checked.data.password);
+      const user = signup
+        ? await registerWorker(checked.data.phone, checked.data.password)
+        : await login(checked.data.phone, checked.data.password);
       if (user.role !== role) {
         setError(`This account is not a ${role} account. Please use the ${user.role} login.`);
         return;
@@ -81,8 +87,12 @@ export function RoleLogin({ role }: { role: LoginRole }) {
             <ArrowLeft size={16} /> Back to home
           </Link>
           <p className="eyebrow">{copy.eyebrow}</p>
-          <h1 className="mt-3 font-display text-4xl font-semibold">{copy.title}</h1>
-          <p className="mt-3 text-muted-foreground">{copy.description}</p>
+          <h1 className="mt-3 font-display text-4xl font-semibold">
+            {signup ? "Create a worker account" : copy.title}
+          </h1>
+          <p className="mt-3 text-muted-foreground">
+            {signup ? "Create your account to start field screenings." : copy.description}
+          </p>
 
           <form onSubmit={submit} className="mt-9 space-y-5">
             <label className="block text-sm font-semibold">
@@ -113,11 +123,44 @@ export function RoleLogin({ role }: { role: LoginRole }) {
                 />
               </div>
             </label>
+            {signup && (
+              <label className="block text-sm font-semibold">
+                Confirm password
+                <div className="relative mt-2">
+                  <LockKeyhole size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    autoComplete="new-password"
+                    placeholder="Re-enter your password"
+                    className="field pl-12"
+                  />
+                </div>
+              </label>
+            )}
             {error && <p role="alert" className="rounded-md bg-danger-soft p-3 text-sm text-danger">{error}</p>}
             <Button type="submit" size="lg" className="w-full" disabled={busy}>
-              {busy ? "Signing in…" : copy.submit} <ArrowRight />
+              {busy ? (signup ? "Creating account…" : "Signing in…") : signup ? "Create worker account" : copy.submit}{" "}
+              <ArrowRight />
             </Button>
           </form>
+
+          {role === "worker" && (
+            <p className="mt-5 text-center text-sm text-muted-foreground">
+              {signup ? "Already have an account?" : "New worker?"}{" "}
+              <button
+                type="button"
+                className="font-medium text-primary hover:underline"
+                onClick={() => {
+                  setSignup((value) => !value);
+                  setError("");
+                }}
+              >
+                {signup ? "Log in" : "Sign up"}
+              </button>
+            </p>
+          )}
 
           <div className="mt-7 rounded-md border border-border bg-card p-4 text-sm">
             <p className="font-semibold">Looking for the other workspace?</p>

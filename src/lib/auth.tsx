@@ -3,7 +3,13 @@ import { useNavigate } from '@tanstack/react-router';
 import { api, authSchema, type AuthUser } from './api';
 import { useQueryClient } from '@tanstack/react-query';
 
-type AuthContextValue = { user: AuthUser | null; ready: boolean; login: (phone: string, password: string) => Promise<AuthUser>; logout: () => void };
+type AuthContextValue = {
+  user: AuthUser | null;
+  ready: boolean;
+  login: (phone: string, password: string) => Promise<AuthUser>;
+  registerWorker: (phone: string, password: string) => Promise<AuthUser>;
+  logout: () => void;
+};
 const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -22,11 +28,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(next);
     return next;
   }
+  async function registerWorker(phone: string, password: string) {
+    await api.post('/auth/register', { phone, password, role: 'worker' });
+    return login(phone, password);
+  }
   function logout() {
     queryClient.cancelQueries().then(() => queryClient.clear());
     localStorage.removeItem('poshanscan_token'); sessionStorage.removeItem('poshanscan_user'); setUser(null);
     navigate({ to: "/login", search: { role: "worker" }, replace: true });
   }
-  return <AuthContext.Provider value={{ user, ready, login, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, ready, login, registerWorker, logout }}>{children}</AuthContext.Provider>;
 }
 export function useAuth() { const context = useContext(AuthContext); if (!context) throw new Error('AuthProvider missing'); return context; }

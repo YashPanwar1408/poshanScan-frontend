@@ -18,6 +18,16 @@ export const loginSchema = z.object({
     .regex(/^\+?[0-9\s-]{8,18}$/, "Enter a valid phone number"),
   password: z.string().min(1, "Enter your password").max(200),
 });
+export const signupSchema = z
+  .object({
+    phone: loginSchema.shape.phone,
+    password: z.string().min(8, "Password must be at least 8 characters.").max(200),
+    confirmPassword: z.string().min(1, "Confirm your password."),
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
 export const childSchema = z.object({
   name: z.string().trim().min(1).max(100),
   dob: z.string().date(),

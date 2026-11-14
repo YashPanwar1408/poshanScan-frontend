@@ -13,10 +13,17 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppChildrenRouteImport } from './routes/app/children'
 import { Route as AppScanRouteImport } from './routes/app/scan'
+import { Route as SupervisorFlaggedRouteImport } from './routes/supervisor.flagged'
+import { Route as SupervisorLocationsRouteImport } from './routes/supervisor.locations'
 import { Route as SupervisorLoginRouteImport } from './routes/supervisor.login'
+import { Route as SupervisorOverviewRouteImport } from './routes/supervisor.overview'
+import { Route as SupervisorReportsRouteImport } from './routes/supervisor.reports'
+import { Route as SupervisorTrendsRouteImport } from './routes/supervisor.trends'
+import { Route as SupervisorWorkersRouteImport } from './routes/supervisor.workers'
 import { Route as WorkerLoginRouteImport } from './routes/worker.login'
 import { Route as AppCaptureChildIdRouteImport } from './routes/app/capture.$childId'
 import { Route as AppResultScanIdRouteImport } from './routes/app/result.$scanId'
+import { Route as SupervisorDevApiRouteImport } from './routes/supervisor.dev.api'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -38,9 +45,39 @@ const AppScanRoute = AppScanRouteImport.update({
   path: '/app/scan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SupervisorFlaggedRoute = SupervisorFlaggedRouteImport.update({
+  id: '/supervisor/flagged',
+  path: '/supervisor/flagged',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupervisorLocationsRoute = SupervisorLocationsRouteImport.update({
+  id: '/supervisor/locations',
+  path: '/supervisor/locations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SupervisorLoginRoute = SupervisorLoginRouteImport.update({
   id: '/supervisor/login',
   path: '/supervisor/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupervisorOverviewRoute = SupervisorOverviewRouteImport.update({
+  id: '/supervisor/overview',
+  path: '/supervisor/overview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupervisorReportsRoute = SupervisorReportsRouteImport.update({
+  id: '/supervisor/reports',
+  path: '/supervisor/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupervisorTrendsRoute = SupervisorTrendsRouteImport.update({
+  id: '/supervisor/trends',
+  path: '/supervisor/trends',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupervisorWorkersRoute = SupervisorWorkersRouteImport.update({
+  id: '/supervisor/workers',
+  path: '/supervisor/workers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkerLoginRoute = WorkerLoginRouteImport.update({
@@ -58,26 +95,45 @@ const AppResultScanIdRoute = AppResultScanIdRouteImport.update({
   path: '/app/result/$scanId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SupervisorDevApiRoute = SupervisorDevApiRouteImport.update({
+  id: '/supervisor/dev/api',
+  path: '/supervisor/dev/api',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app/children': typeof AppChildrenRoute
   '/app/scan': typeof AppScanRoute
+  '/supervisor/flagged': typeof SupervisorFlaggedRoute
+  '/supervisor/locations': typeof SupervisorLocationsRoute
   '/supervisor/login': typeof SupervisorLoginRoute
+  '/supervisor/overview': typeof SupervisorOverviewRoute
+  '/supervisor/reports': typeof SupervisorReportsRoute
+  '/supervisor/trends': typeof SupervisorTrendsRoute
+  '/supervisor/workers': typeof SupervisorWorkersRoute
   '/worker/login': typeof WorkerLoginRoute
   '/app/capture/$childId': typeof AppCaptureChildIdRoute
   '/app/result/$scanId': typeof AppResultScanIdRoute
+  '/supervisor/dev/api': typeof SupervisorDevApiRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app/children': typeof AppChildrenRoute
   '/app/scan': typeof AppScanRoute
+  '/supervisor/flagged': typeof SupervisorFlaggedRoute
+  '/supervisor/locations': typeof SupervisorLocationsRoute
   '/supervisor/login': typeof SupervisorLoginRoute
+  '/supervisor/overview': typeof SupervisorOverviewRoute
+  '/supervisor/reports': typeof SupervisorReportsRoute
+  '/supervisor/trends': typeof SupervisorTrendsRoute
+  '/supervisor/workers': typeof SupervisorWorkersRoute
   '/worker/login': typeof WorkerLoginRoute
   '/app/capture/$childId': typeof AppCaptureChildIdRoute
   '/app/result/$scanId': typeof AppResultScanIdRoute
+  '/supervisor/dev/api': typeof SupervisorDevApiRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -85,10 +141,17 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/app/children': typeof AppChildrenRoute
   '/app/scan': typeof AppScanRoute
+  '/supervisor/flagged': typeof SupervisorFlaggedRoute
+  '/supervisor/locations': typeof SupervisorLocationsRoute
   '/supervisor/login': typeof SupervisorLoginRoute
+  '/supervisor/overview': typeof SupervisorOverviewRoute
+  '/supervisor/reports': typeof SupervisorReportsRoute
+  '/supervisor/trends': typeof SupervisorTrendsRoute
+  '/supervisor/workers': typeof SupervisorWorkersRoute
   '/worker/login': typeof WorkerLoginRoute
   '/app/capture/$childId': typeof AppCaptureChildIdRoute
   '/app/result/$scanId': typeof AppResultScanIdRoute
+  '/supervisor/dev/api': typeof SupervisorDevApiRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -97,30 +160,51 @@ export interface FileRouteTypes {
     | '/login'
     | '/app/children'
     | '/app/scan'
+    | '/supervisor/flagged'
+    | '/supervisor/locations'
     | '/supervisor/login'
+    | '/supervisor/overview'
+    | '/supervisor/reports'
+    | '/supervisor/trends'
+    | '/supervisor/workers'
     | '/worker/login'
     | '/app/capture/$childId'
     | '/app/result/$scanId'
+    | '/supervisor/dev/api'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/app/children'
     | '/app/scan'
+    | '/supervisor/flagged'
+    | '/supervisor/locations'
     | '/supervisor/login'
+    | '/supervisor/overview'
+    | '/supervisor/reports'
+    | '/supervisor/trends'
+    | '/supervisor/workers'
     | '/worker/login'
     | '/app/capture/$childId'
     | '/app/result/$scanId'
+    | '/supervisor/dev/api'
   id:
     | '__root__'
     | '/'
     | '/login'
     | '/app/children'
     | '/app/scan'
+    | '/supervisor/flagged'
+    | '/supervisor/locations'
     | '/supervisor/login'
+    | '/supervisor/overview'
+    | '/supervisor/reports'
+    | '/supervisor/trends'
+    | '/supervisor/workers'
     | '/worker/login'
     | '/app/capture/$childId'
     | '/app/result/$scanId'
+    | '/supervisor/dev/api'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -128,10 +212,17 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   AppChildrenRoute: typeof AppChildrenRoute
   AppScanRoute: typeof AppScanRoute
+  SupervisorFlaggedRoute: typeof SupervisorFlaggedRoute
+  SupervisorLocationsRoute: typeof SupervisorLocationsRoute
   SupervisorLoginRoute: typeof SupervisorLoginRoute
+  SupervisorOverviewRoute: typeof SupervisorOverviewRoute
+  SupervisorReportsRoute: typeof SupervisorReportsRoute
+  SupervisorTrendsRoute: typeof SupervisorTrendsRoute
+  SupervisorWorkersRoute: typeof SupervisorWorkersRoute
   WorkerLoginRoute: typeof WorkerLoginRoute
   AppCaptureChildIdRoute: typeof AppCaptureChildIdRoute
   AppResultScanIdRoute: typeof AppResultScanIdRoute
+  SupervisorDevApiRoute: typeof SupervisorDevApiRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -164,11 +255,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppScanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/supervisor/flagged': {
+      id: '/supervisor/flagged'
+      path: '/supervisor/flagged'
+      fullPath: '/supervisor/flagged'
+      preLoaderRoute: typeof SupervisorFlaggedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/supervisor/locations': {
+      id: '/supervisor/locations'
+      path: '/supervisor/locations'
+      fullPath: '/supervisor/locations'
+      preLoaderRoute: typeof SupervisorLocationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/supervisor/login': {
       id: '/supervisor/login'
       path: '/supervisor/login'
       fullPath: '/supervisor/login'
       preLoaderRoute: typeof SupervisorLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/supervisor/overview': {
+      id: '/supervisor/overview'
+      path: '/supervisor/overview'
+      fullPath: '/supervisor/overview'
+      preLoaderRoute: typeof SupervisorOverviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/supervisor/reports': {
+      id: '/supervisor/reports'
+      path: '/supervisor/reports'
+      fullPath: '/supervisor/reports'
+      preLoaderRoute: typeof SupervisorReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/supervisor/trends': {
+      id: '/supervisor/trends'
+      path: '/supervisor/trends'
+      fullPath: '/supervisor/trends'
+      preLoaderRoute: typeof SupervisorTrendsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/supervisor/workers': {
+      id: '/supervisor/workers'
+      path: '/supervisor/workers'
+      fullPath: '/supervisor/workers'
+      preLoaderRoute: typeof SupervisorWorkersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/worker/login': {
@@ -192,6 +325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppResultScanIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/supervisor/dev/api': {
+      id: '/supervisor/dev/api'
+      path: '/supervisor/dev/api'
+      fullPath: '/supervisor/dev/api'
+      preLoaderRoute: typeof SupervisorDevApiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -200,10 +340,17 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   AppChildrenRoute: AppChildrenRoute,
   AppScanRoute: AppScanRoute,
+  SupervisorFlaggedRoute: SupervisorFlaggedRoute,
+  SupervisorLocationsRoute: SupervisorLocationsRoute,
   SupervisorLoginRoute: SupervisorLoginRoute,
+  SupervisorOverviewRoute: SupervisorOverviewRoute,
+  SupervisorReportsRoute: SupervisorReportsRoute,
+  SupervisorTrendsRoute: SupervisorTrendsRoute,
+  SupervisorWorkersRoute: SupervisorWorkersRoute,
   WorkerLoginRoute: WorkerLoginRoute,
   AppCaptureChildIdRoute: AppCaptureChildIdRoute,
   AppResultScanIdRoute: AppResultScanIdRoute,
+  SupervisorDevApiRoute: SupervisorDevApiRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

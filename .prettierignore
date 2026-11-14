@@ -6,3 +6,8 @@ pnpm-lock.yaml
 package-lock.json
 bun.lock
 routeTree.gen.ts
+src/routes/app/*
+src/routes/worker.login.tsx
+src/components/RoleLogin.tsx
+src/lib/auth.tsx
+src/lib/offline.ts

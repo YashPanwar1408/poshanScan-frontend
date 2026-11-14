@@ -1,0 +1,162 @@
+/* ============================================================
+   PoshanScan Supervisor Portal — Design Tokens
+   Scoped to .sv-root; never leaks into landing/worker styles.
+   ============================================================ */
+@import "@fontsource-variable/jetbrains-mono";
+
+.sv-root {
+  /* ── Canvas & surface ─────────────────────────── */
+  --sv-canvas: #f4f7f6;
+  --sv-surface: #ffffff;
+  --sv-border: #e1e8e5;
+
+  /* ── Text ─────────────────────────────────────── */
+  --sv-text: #12201c;
+  --sv-muted: #5b6a65;
+
+  /* ── Sidebar (ink) ────────────────────────────── */
+  --sv-ink: #0a1b17;
+  --sv-ink-border: #142920;
+  --sv-ink-muted: #6b8279;
+  --sv-ink-text: #d4e3df;
+
+  /* ── Primary teal ─────────────────────────────── */
+  --sv-primary: #0f6b5c;
+  --sv-primary-hv: #0c5a4d;
+  --sv-primary-sf: #e7f3f0;
+
+  /* ── Neutral data accent ──────────────────────── */
+  --sv-accent: #4a6fa5;
+  --sv-accent-sf: #e8eef6;
+
+  /* ── Risk bands (ONLY use for band UI) ───────── */
+  --sv-normal: #2e9162;
+  --sv-normal-sf: #e4f3eb;
+  --sv-mam: #e0a126;
+  --sv-mam-sf: #fbf0d6;
+  --sv-sam: #d0463b;
+  --sv-sam-sf: #fbe3e0;
+
+  /* ── Status ───────────────────────────────────── */
+  --sv-success: #2e9162;
+  --sv-warning: #e0a126;
+  --sv-danger: #d0463b;
+
+  /* ── Typography ───────────────────────────────── */
+  --sv-font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --sv-font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --sv-font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  /* ── Radii ────────────────────────────────────── */
+  --sv-radius-sm: 8px;
+  --sv-radius-md: 10px;
+  --sv-radius-lg: 12px;
+
+  /* ── Shadows ──────────────────────────────────── */
+  --sv-shadow-sm: 0 1px 3px 0 rgba(10, 27, 23, 0.06);
+  --sv-shadow-md: 0 2px 8px 0 rgba(10, 27, 23, 0.08);
+
+  /* ── Motion ───────────────────────────────────── */
+  --sv-duration-fast: 150ms;
+  --sv-duration-normal: 200ms;
+  --sv-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Sidebar widths ───────────────────────────── */
+  --sv-sidebar-w: 240px;
+  --sv-sidebar-w-rail: 60px;
+}
+
+/* ── Dark theme ──────────────────────────────────── */
+.sv-root[data-theme="dark"] {
+  --sv-canvas: #0b1512;
+  --sv-surface: #111e1a;
+  --sv-border: #1f2f2a;
+
+  --sv-text: #e6efec;
+  --sv-muted: #8fa39d;
+
+  --sv-ink: #080f0d;
+  --sv-ink-border: #0e1e1a;
+  --sv-ink-muted: #4a6259;
+  --sv-ink-text: #b8ceca;
+
+  --sv-primary: #19866f;
+  --sv-primary-hv: #1a9a80;
+  --sv-primary-sf: #0f2820;
+
+  --sv-accent: #5a82c0;
+  --sv-accent-sf: #0e1b2d;
+
+  --sv-normal: #3cad78;
+  --sv-normal-sf: #0d2318;
+  --sv-mam: #f0b840;
+  --sv-mam-sf: #261b08;
+  --sv-sam: #e05a4f;
+  --sv-sam-sf: #270d0b;
+
+  --sv-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
+  --sv-shadow-md: 0 2px 8px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* ── Scoped utility classes ──────────────────────── */
+.sv-root {
+  font-family: var(--sv-font-sans);
+  color: var(--sv-text);
+  background: var(--sv-canvas);
+  font-feature-settings: "tnum" on; /* tabular numerals everywhere */
+}
+
+.sv-root .sv-mono {
+  font-family: var(--sv-font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.01em;
+}
+
+.sv-root .sv-eyebrow {
+  font-family: var(--sv-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sv-muted);
+}
+
+.sv-root .sv-surface {
+  background: var(--sv-surface);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-md);
+}
+
+.sv-root .sv-card {
+  background: var(--sv-surface);
+  border: 1px solid var(--sv-border);
+  border-radius: var(--sv-radius-md);
+  box-shadow: var(--sv-shadow-sm);
+}
+
+/* ── Band badge classes ──────────────────────────── */
+.sv-root .band-normal {
+  background: var(--sv-normal-sf);
+  color: var(--sv-normal);
+  border: 1px solid color-mix(in srgb, var(--sv-normal) 25%, transparent);
+}
+.sv-root .band-mam {
+  background: var(--sv-mam-sf);
+  color: var(--sv-mam);
+  border: 1px solid color-mix(in srgb, var(--sv-mam) 25%, transparent);
+}
+.sv-root .band-sam {
+  background: var(--sv-sam-sf);
+  color: var(--sv-sam);
+  border: 1px solid color-mix(in srgb, var(--sv-sam) 25%, transparent);
+}
+
+/* ── Reduced motion ─────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .sv-root *,
+  .sv-root *::before,
+  .sv-root *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

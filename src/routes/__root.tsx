@@ -7,6 +7,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { AuthProvider } from "../lib/auth";
+import { PortalPrefsProvider } from "../lib/portal-prefs";
 import "../styles.css";
 
 function NotFoundComponent() {
@@ -77,9 +78,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Outlet />
-      </AuthProvider>
+      <PortalPrefsProvider>
+        <AuthProvider>
+          <Outlet />
+        </AuthProvider>
+      </PortalPrefsProvider>
     </QueryClientProvider>
   );
 }

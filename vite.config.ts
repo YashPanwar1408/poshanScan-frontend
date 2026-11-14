@@ -15,4 +15,19 @@ export default defineConfig({
     port: 5173,
     host: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("recharts") || id.includes("d3-") || id.includes("victory-vendor")) {
+            return "recharts-vendor";
+          }
+          if (id.includes("leaflet")) {
+            return "leaflet-vendor";
+          }
+          return undefined;
+        },
+      },
+    },
+  },
 });

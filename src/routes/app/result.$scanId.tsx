@@ -4,6 +4,7 @@ import { ArrowRight, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RequireRole, WorkerShell } from "@/components/Screen";
 import { api, errorMessage, type ScanResult } from "@/lib/api";
+import { getMuacBands, type MuacAgeCategory } from "@/lib/muac";
 export const Route = createFileRoute("/app/result/$scanId")({
   head: () => ({
     meta: [
@@ -56,8 +57,8 @@ function Result() {
         <div className="max-w-2xl">
           {(() => {
             const isChild = result.age_category === "child_6_59m";
-            const min = isChild ? 90 : 150;
-            const max = isChild ? 160 : 400;
+            const category: MuacAgeCategory = isChild ? "child_6_59m" : "adult";
+            const { min, max } = getMuacBands(category);
             const value = Number(result.muac_estimate_mm);
             const position = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
             return (

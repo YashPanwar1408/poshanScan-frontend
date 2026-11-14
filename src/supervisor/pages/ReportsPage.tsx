@@ -11,12 +11,13 @@
  *
  * Panel 2: "Programme summary (print / PDF)"
  * - Print-optimized A4 layout with print styles hiding shell & maintaining light mode
- * - Title, generated IST timestamp, age scope, KPI row, risk breakdown, 30-day trend, top-5 risk villages, disclaimer
+ * - Title, generated IST timestamp, age scope, age-specific risk breakdown, 30-day trend, top-5 risk villages, disclaimer
  * - Calls window.print()
  */
 import { useState, useMemo } from "react";
 import Papa from "papaparse";
 import { toast } from "sonner";
+import { getMuacBands } from "@/lib/muac";
 import {
   FileCsv,
   DownloadSimple,
@@ -45,6 +46,7 @@ interface ParsedCsvPreview {
 
 export function ReportsPage() {
   const { ageCategory } = useSvPrefs();
+  const bands = ageCategory === "all" ? null : getMuacBands(ageCategory);
 
   // CSV Export state
   const [exportState, setExportState] = useState<"idle" | "generating" | "success" | "error">(
@@ -367,7 +369,7 @@ export function ReportsPage() {
                       {ageCategory === "child_6_59m"
                         ? "Children 6–59 months"
                         : ageCategory === "adult"
-                          ? "Adults (demo)"
+                          ? "Adults"
                           : "All Age Groups"}
                     </p>
                   </div>
@@ -387,7 +389,7 @@ export function ReportsPage() {
 
                 <div className="rounded-lg border border-[var(--sv-border)] bg-[var(--sv-normal)]/10 p-3 print:border-gray-300">
                   <span className="text-[10px] uppercase font-bold text-[var(--sv-normal)] block">
-                    Normal Band (≥125 mm)
+                    {bands ? `Normal Band (≥${bands.moderateBelow} mm)` : "Normal Band"}
                   </span>
                   <span className="font-mono text-xl font-bold text-[var(--sv-normal)]">
                     {formatNumber(overview.normalCount)}
@@ -399,7 +401,9 @@ export function ReportsPage() {
 
                 <div className="rounded-lg border border-[var(--sv-border)] bg-[var(--sv-mam)]/10 p-3 print:border-gray-300">
                   <span className="text-[10px] uppercase font-bold text-[var(--sv-mam)] block">
-                    MAM Band (115–124 mm)
+                    {bands
+                      ? `MAM Band (${bands.severeBelow}–<${bands.moderateBelow} mm)`
+                      : "MAM Band"}
                   </span>
                   <span className="font-mono text-xl font-bold text-[var(--sv-mam)]">
                     {formatNumber(overview.mamCount)}
@@ -411,7 +415,7 @@ export function ReportsPage() {
 
                 <div className="rounded-lg border border-[var(--sv-border)] bg-[var(--sv-sam)]/10 p-3 print:border-gray-300">
                   <span className="text-[10px] uppercase font-bold text-[var(--sv-sam)] block">
-                    SAM Band (&lt;115 mm)
+                    {bands ? `SAM Band (<${bands.severeBelow} mm)` : "SAM Band"}
                   </span>
                   <span className="font-mono text-xl font-bold text-[var(--sv-sam)]">
                     {formatNumber(overview.samCount)}

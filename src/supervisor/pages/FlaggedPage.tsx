@@ -6,7 +6,7 @@
  * - Tabs: Pending (n) and Reviewed (n)
  * - Search, reason chips (SAM, Low confidence), sort, bulk selection with sequential progress
  * - URL sync with ?scan=<id> for deep links from Overview
- * - Visual MUAC horizontal scale (60–180 mm) with SAM/MAM/Normal zones, 115/125 ticks, pointer
+ * - Visual MUAC horizontal scale with age-specific SAM/MAM/Normal zones and threshold ticks
  * - Confidence meter, metadata grid, image panel with zoom modal and fallback
  * - Recommended clinical next steps and "Copy referral summary"
  * - Optimistic review with rollback + query invalidation (flagged + overview)
@@ -53,6 +53,7 @@ import {
   SegmentedControl,
 } from "../components/Primitives";
 import { BandBadge } from "../components/BandBadge";
+import { getMuacBands } from "@/lib/muac";
 
 type FlagTab = "pending" | "reviewed";
 type ReasonFilter = "all" | "sam" | "low_confidence";
@@ -166,6 +167,11 @@ export function FlaggedPage() {
     if (!selectedScanId) return filteredItems[0] ?? null;
     return filteredItems.find((i) => i.id === selectedScanId) ?? filteredItems[0] ?? null;
   }, [filteredItems, selectedScanId]);
+  const scale = ageCategory === "all" ? getMuacBands("child_6_59m") : getMuacBands(ageCategory);
+  const scaleSpan = scale.max - scale.min;
+  const severeWidth = ((scale.severeBelow - scale.min) / scaleSpan) * 100;
+  const moderateWidth = ((scale.moderateBelow - scale.severeBelow) / scaleSpan) * 100;
+  const normalWidth = 100 - severeWidth - moderateWidth;
 
   // Next item selection helper
   const selectNextItem = useCallback(() => {
@@ -739,9 +745,8 @@ export function FlaggedPage() {
                 <div className="relative pt-6 pb-4">
                   {/* Pointer Needle & Badge */}
                   {(() => {
-                    // Position 60 -> 0%, 180 -> 100%
-                    const clamped = Math.max(60, Math.min(180, selectedItem.muacMm));
-                    const pct = ((clamped - 60) / (180 - 60)) * 100;
+                    const clamped = Math.max(scale.min, Math.min(scale.max, selectedItem.muacMm));
+                    const pct = ((clamped - scale.min) / scaleSpan) * 100;
                     return (
                       <div
                         className="absolute top-0 -translate-x-1/2 transition-all duration-300 z-10 flex flex-col items-center pointer-events-none"
@@ -757,49 +762,53 @@ export function FlaggedPage() {
 
                   {/* Colored Scale Bar */}
                   <div className="flex h-5 w-full rounded-md overflow-hidden shadow-inner text-[10px] font-bold text-white leading-5 text-center">
-                    {/* SAM: 60 - 115 mm (45.8% width) */}
                     <div
-                      style={{ width: "45.83%" }}
+                      style={{ width: `${severeWidth}%` }}
                       className="bg-[var(--sv-sam)] transition-all flex items-center justify-center"
-                      title="SAM Band: < 115 mm"
+                      title={`SAM Band: < ${scale.severeBelow} mm`}
                     >
-                      SAM (&lt;115)
+                      SAM (&lt;{scale.severeBelow})
                     </div>
-                    {/* MAM: 115 - 125 mm (8.33% width) */}
                     <div
-                      style={{ width: "8.33%" }}
+                      style={{ width: `${moderateWidth}%` }}
                       className="bg-[var(--sv-mam)] transition-all flex items-center justify-center text-[9px]"
-                      title="MAM Band: 115 – 125 mm"
+                      title={`MAM Band: ${scale.severeBelow} – ${scale.moderateBelow} mm`}
                     >
                       MAM
                     </div>
-                    {/* Normal: 125 - 180 mm (45.84% width) */}
                     <div
-                      style={{ width: "45.84%" }}
+                      style={{ width: `${normalWidth}%` }}
                       className="bg-[var(--sv-normal)] transition-all flex items-center justify-center"
-                      title="Normal Band: ≥ 125 mm"
+                      title={`Normal Band: ≥ ${scale.moderateBelow} mm`}
                     >
-                      Normal (≥125)
+                      Normal (≥{scale.moderateBelow})
                     </div>
                   </div>
 
                   {/* Ticks & Labels */}
                   <div className="relative mt-1.5 text-[10px] font-mono text-[var(--sv-muted)] h-4">
-                    <span className="absolute left-0">60 mm</span>
-                    <span className="absolute left-[45.83%] -translate-x-1/2 font-bold text-[var(--sv-sam)]">
-                      115 mm
+                    <span className="absolute left-0">{scale.min} mm</span>
+                    <span
+                      className="absolute -translate-x-1/2 font-bold text-[var(--sv-sam)]"
+                      style={{ left: `${severeWidth}%` }}
+                    >
+                      {scale.severeBelow} mm
                     </span>
-                    <span className="absolute left-[54.16%] -translate-x-1/2 font-bold text-[var(--sv-mam)]">
-                      125 mm
+                    <span
+                      className="absolute -translate-x-1/2 font-bold text-[var(--sv-mam)]"
+                      style={{ left: `${severeWidth + moderateWidth}%` }}
+                    >
+                      {scale.moderateBelow} mm
                     </span>
-                    <span className="absolute right-0">180 mm</span>
+                    <span className="absolute right-0">{scale.max} mm</span>
                   </div>
                 </div>
 
                 {ageCategory === "adult" && (
                   <p className="mt-2 text-[11px] text-[var(--sv-muted)] italic">
-                    Note: WHO child screening bands (Normal ≥125, MAM 115–&lt;125, SAM &lt;115 mm)
-                    apply to children 6–59 months; adult cutoff thresholds differ.
+                    {ageCategory === "adult"
+                      ? "Adult thresholds: Normal ≥230 mm, MAM 210–<230 mm, SAM <210 mm."
+                      : "Child thresholds: Normal ≥125 mm, MAM 115–<125 mm, SAM <115 mm."}
                   </p>
                 )}
               </div>
@@ -815,8 +824,8 @@ export function FlaggedPage() {
                   <ul className="space-y-1 text-[var(--sv-muted)] list-disc pl-4 text-[11px]">
                     {selectedItem.band.toUpperCase() === "SAM" && (
                       <li className="text-[var(--sv-sam)] font-medium">
-                        Estimated MUAC of {selectedItem.muacMm} mm falls below the 115 mm SAM
-                        threshold.
+                        Estimated MUAC of {selectedItem.muacMm} mm falls below the{" "}
+                        {scale.severeBelow} mm SAM threshold.
                       </li>
                     )}
                     {selectedItem.confidencePct < 60 && (
@@ -840,8 +849,12 @@ export function FlaggedPage() {
                   </div>
                   <p className="text-[11px] text-[var(--sv-muted)] leading-relaxed">
                     {selectedItem.band.toUpperCase() === "SAM"
-                      ? "Refer child immediately to Primary Health Centre (PHC) or Nutrition Rehabilitation Centre (NRC) for clinical assessment per national IMAM protocol. Screening aid only — never a standalone diagnosis."
-                      : "Instruct field worker to re-measure child arm with a standard Shakir tape to ensure accuracy. Check camera angle, arm relaxation, and printed reference marker visibility."}
+                      ? ageCategory === "adult"
+                        ? "Refer the adult promptly for clinical nutrition assessment according to your local protocol. Screening aid only — never a standalone diagnosis."
+                        : "Refer the child immediately to a health facility for clinical assessment according to your local protocol. Screening aid only — never a standalone diagnosis."
+                      : ageCategory === "adult"
+                        ? "Ask the field worker to repeat the adult measurement with a standard MUAC tape and verify camera angle, arm relaxation, and marker visibility."
+                        : "Ask the field worker to repeat the child measurement with a standard Shakir tape and verify camera angle, arm relaxation, and marker visibility."}
                   </p>
                 </div>
               </div>

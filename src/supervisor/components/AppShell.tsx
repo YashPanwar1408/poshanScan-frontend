@@ -59,7 +59,7 @@ const NAV_GROUPS = [
 
 const AGE_OPTIONS: { value: AgeCategory; label: string; Icon: typeof Baby }[] = [
   { value: "child_6_59m", label: "Children 6–59m", Icon: Baby },
-  { value: "adult", label: "Adults (demo)", Icon: User },
+  { value: "adult", label: "Adults", Icon: User },
   { value: "all", label: "All", Icon: UsersFour },
 ];
 
@@ -279,9 +279,7 @@ function Sidebar({
             </div>
             <div className="min-w-0">
               <p className="truncate text-xs font-semibold text-white">{session.name}</p>
-              <p className="text-[10px] capitalize text-[var(--sv-ink-muted)]">
-                {session.role}
-              </p>
+              <p className="text-[10px] capitalize text-[var(--sv-ink-muted)]">{session.role}</p>
             </div>
           </div>
         )}

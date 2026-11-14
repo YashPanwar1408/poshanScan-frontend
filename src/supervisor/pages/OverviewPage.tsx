@@ -21,6 +21,7 @@ import {
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import { useOverview, useTrends, useLocations, useWorkers, useFlagged } from "../api/hooks";
 import { useSvPrefs } from "../store/prefs";
+import { getMuacBands } from "@/lib/muac";
 import { KpiCard } from "../components/KpiCard";
 import {
   PageHeader,
@@ -170,6 +171,18 @@ export function OverviewPage() {
   }
 
   const d = overview!;
+  const bands = ageCategory === "all" ? null : getMuacBands(ageCategory);
+  const bandLabels = bands
+    ? {
+        normal: `Normal (≥${bands.moderateBelow} mm)`,
+        mam: `MAM (${bands.severeBelow}–<${bands.moderateBelow} mm)`,
+        sam: `SAM (<${bands.severeBelow} mm)`,
+      }
+    : {
+        normal: "Normal (backend classified)",
+        mam: "MAM (backend classified)",
+        sam: "SAM (backend classified)",
+      };
 
   // Empty state if total = 0
   if (d.totalScans === 0) {
@@ -181,7 +194,7 @@ export function OverviewPage() {
             ageCategory === "child_6_59m"
               ? "Children 6–59 months"
               : ageCategory === "adult"
-                ? "Adults (demo)"
+                ? "Adults"
                 : "All age groups"
           }`}
         />
@@ -222,7 +235,7 @@ export function OverviewPage() {
     ageCategory === "child_6_59m"
       ? "Children 6–59 months · All villages"
       : ageCategory === "adult"
-        ? "Adults (demo records) · All villages"
+        ? "Adults · All villages"
         : "All age records · All villages";
 
   return (
@@ -347,21 +360,21 @@ export function OverviewPage() {
               {[
                 {
                   band: "NORMAL" as const,
-                  label: "Normal (≥125 mm)",
+                  label: bandLabels.normal,
                   count: d.normalCount,
                   pct: d.shares.normalPct,
                   color: BAND_COLORS.normal,
                 },
                 {
                   band: "MAM" as const,
-                  label: "MAM (115–<125 mm)",
+                  label: bandLabels.mam,
                   count: d.mamCount,
                   pct: d.shares.mamPct,
                   color: BAND_COLORS.mam,
                 },
                 {
                   band: "SAM" as const,
-                  label: "SAM (<115 mm)",
+                  label: bandLabels.sam,
                   count: d.samCount,
                   pct: d.shares.samPct,
                   color: BAND_COLORS.sam,
@@ -476,7 +489,9 @@ export function OverviewPage() {
           <div className="flex items-center justify-between border-b border-[var(--sv-border)] pb-2">
             <div className="flex items-center gap-2 font-semibold text-[var(--sv-text)]">
               <Info size={16} weight="duotone" className="text-[var(--sv-primary)]" />
-              WHO Child Malnutrition Screening Bands (6–59 months)
+              {ageCategory === "adult"
+                ? "Adult MUAC Screening Bands"
+                : "WHO Child Malnutrition Screening Bands (6–59 months)"}
             </div>
             <button
               type="button"
@@ -491,7 +506,9 @@ export function OverviewPage() {
               <div className="flex items-center gap-1.5 font-semibold text-[var(--sv-normal)]">
                 <CheckCircle size={14} weight="fill" /> Normal
               </div>
-              <p className="font-mono text-[11px] text-[var(--sv-text)]">MUAC ≥ 125 mm</p>
+              <p className="font-mono text-[11px] text-[var(--sv-text)]">
+                MUAC ≥ {bands?.moderateBelow ?? 125} mm
+              </p>
               <p className="text-[11px] text-[var(--sv-muted)]">
                 Adequate nutrition status; routine growth monitoring.
               </p>
@@ -501,7 +518,7 @@ export function OverviewPage() {
                 <Warning size={14} weight="fill" /> MAM
               </div>
               <p className="font-mono text-[11px] text-[var(--sv-text)]">
-                115 mm ≤ MUAC &lt; 125 mm
+                {bands?.severeBelow ?? 115} mm ≤ MUAC &lt; {bands?.moderateBelow ?? 125} mm
               </p>
               <p className="text-[11px] text-[var(--sv-muted)]">
                 Moderate Acute Malnutrition; supplementary feeding support.
@@ -511,7 +528,9 @@ export function OverviewPage() {
               <div className="flex items-center gap-1.5 font-semibold text-[var(--sv-sam)]">
                 <WarningOctagon size={14} weight="fill" /> SAM
               </div>
-              <p className="font-mono text-[11px] text-[var(--sv-text)]">MUAC &lt; 115 mm</p>
+              <p className="font-mono text-[11px] text-[var(--sv-text)]">
+                MUAC &lt; {bands?.severeBelow ?? 115} mm
+              </p>
               <p className="text-[11px] text-[var(--sv-muted)]">
                 Severe Acute Malnutrition; urgent clinical referral.
               </p>

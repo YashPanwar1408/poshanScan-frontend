@@ -211,7 +211,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             >
               <div className="flex items-center gap-2.5">
                 <User size={16} className="text-[var(--sv-muted)]" />
-                <span>Filter: Adults (Demo)</span>
+                <span>Filter: Adults</span>
               </div>
               {ageCategory === "adult" && (
                 <span className="text-[10px] font-bold text-[var(--sv-primary)]">Active</span>

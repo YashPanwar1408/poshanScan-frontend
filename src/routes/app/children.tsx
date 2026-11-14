@@ -32,6 +32,7 @@ export const Route = createFileRoute("/app/children")({
 });
 function Children() {
   const { register, age_category } = Route.useSearch();
+  const isAdult = age_category === "adult";
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<Child[]>([]);
   const [open, setOpen] = useState(register);
@@ -51,7 +52,10 @@ function Children() {
       setLoading(true);
       try {
         const { data } = await api.get("/children/search", {
-          params: { q: query.trim().slice(0, 100) },
+          params: {
+            q: query.trim().slice(0, 100),
+            age_category,
+          },
         });
         if (active) {
           setItems(Array.isArray(data) ? data : data.children || []);
@@ -67,7 +71,7 @@ function Children() {
       active = false;
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [query, age_category]);
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -78,7 +82,10 @@ function Children() {
     }
     setSaving(true);
     try {
-      const { data } = await api.post("/children", valid.data);
+      const { data } = await api.post("/children", {
+        ...valid.data,
+        age_category,
+      });
       setItems((prev) => [data, ...prev]);
       setOpen(false);
       setForm({ name: "", dob: "", gender: "F", guardian_name: "", village: "" });
@@ -89,21 +96,23 @@ function Children() {
     }
   }
   return (
-    <WorkerShell title="Children">
+    <WorkerShell title={isAdult ? "Adults" : "Children"} backToScreening>
       <div className="max-w-4xl">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="text-muted-foreground">Find a child to start a new screening.</p>
+          <p className="text-muted-foreground">
+            {isAdult ? "Find an adult to start a new screening." : "Find a child to start a new screening."}
+          </p>
           <Button onClick={() => setOpen((v) => !v)}>
-            <Plus /> Register new child
+            <Plus /> Register new {isAdult ? "adult" : "child"}
           </Button>
         </div>
         {open && (
           <form onSubmit={submit} className="panel mt-7 p-6">
-            <h2 className="text-xl font-semibold">Register new child</h2>
+            <h2 className="text-xl font-semibold">Register new {isAdult ? "adult" : "child"}</h2>
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
               {(
                 [
-                  ["name", "Child name", "text"],
+                  ["name", isAdult ? "Adult name" : "Child name", "text"],
                   ["dob", "Date of birth", "date"],
                   ["guardian_name", "Guardian name", "text"],
                   ["village", "Village", "text"],
@@ -138,7 +147,7 @@ function Children() {
             </div>
             <div className="mt-6 flex gap-2">
               <Button type="submit" disabled={saving}>
-                {saving ? "Saving…" : "Save child"}
+                {saving ? "Saving…" : `Save ${isAdult ? "adult" : "child"}`}
               </Button>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
@@ -154,7 +163,7 @@ function Children() {
           <input
             className="field pl-12"
             aria-label="Search children"
-            placeholder="Search by name…"
+            placeholder={`Search ${isAdult ? "adults" : "children"} by name…`}
             value={query}
             maxLength={100}
             onChange={(e) => setQuery(e.target.value)}
@@ -188,7 +197,7 @@ function Children() {
             ))
           ) : (
             <p className="p-8 text-center text-muted-foreground">
-              No children found. Register a child to get started.
+              No {isAdult ? "adults" : "children"} found. Register an {isAdult ? "adult" : "child"} to get started.
             </p>
           )}
         </div>

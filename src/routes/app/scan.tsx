@@ -21,12 +21,13 @@ export const Route = createFileRoute("/app/scan")({
 });
 function ScanStart() {
   const [category, setCategory] = useState<"child_6_59m" | "adult" | "">("");
+  const isAdult = category === "adult";
   return (
     <WorkerShell title="New screening">
-      <div className="max-w-2xl">
+      <div className="mx-auto max-w-3xl text-center">
         <p className="text-lg font-medium">Who is being screened?</p>
         <div
-          className="mt-4 grid gap-3 sm:grid-cols-2"
+          className="mx-auto mt-4 grid max-w-2xl gap-3 sm:grid-cols-2"
           role="group"
           aria-label="Screening category"
         >
@@ -55,9 +56,11 @@ function ScanStart() {
         </p>
         <div className={category ? "" : "opacity-50"} aria-disabled={!category}>
           <p className="text-lg text-muted-foreground">
-            Find an existing child or register a new one before taking a photo.
+            {isAdult
+              ? "Find an existing adult or register a new adult before taking a photo."
+              : "Find an existing child or register a new one before taking a photo."}
           </p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <div className="mx-auto mt-8 grid max-w-2xl gap-4 sm:grid-cols-2">
             <Link
               to="/app/children"
               search={{ register: false, age_category: category || undefined }}
@@ -69,9 +72,13 @@ function ScanStart() {
               className="panel group p-7 hover:border-primary"
             >
               <Search className="text-primary" size={28} />
-              <h2 className="mt-8 text-xl font-semibold">Find a child</h2>
+              <h2 className="mt-8 text-xl font-semibold">
+                {isAdult ? "Find an adult" : "Find a child"}
+              </h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Search records and begin screening.
+                {isAdult
+                  ? "Search records and begin an adult screening."
+                  : "Search records and begin screening."}
               </p>
               <ArrowRight className="mt-8 text-primary" />
             </Link>
@@ -86,9 +93,13 @@ function ScanStart() {
               className="panel group p-7 hover:border-primary"
             >
               <Camera className="text-primary" size={28} />
-              <h2 className="mt-8 text-xl font-semibold">Register a child</h2>
+              <h2 className="mt-8 text-xl font-semibold">
+                {isAdult ? "Register an adult" : "Register a child"}
+              </h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Add a child before capturing a screening.
+                {isAdult
+                  ? "Add an adult before capturing a screening."
+                  : "Add a child before capturing a screening."}
               </p>
               <ArrowRight className="mt-8 text-primary" />
             </Link>

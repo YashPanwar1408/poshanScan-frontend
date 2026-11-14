@@ -19,7 +19,15 @@ export function RequireRole({ allowed, children }: { allowed: string[]; children
   if (!user || !allowed.includes(user.role)) return null;
   return <>{children}</>;
 }
-export function WorkerShell({ children, title }: { children: ReactNode; title: string }) {
+export function WorkerShell({
+  children,
+  title,
+  backToScreening = false,
+}: {
+  children: ReactNode;
+  title: string;
+  backToScreening?: boolean;
+}) {
   const { logout } = useAuth();
   const [pending, setPending] = useState(0);
   useEffect(() => {
@@ -82,11 +90,11 @@ export function WorkerShell({ children, title }: { children: ReactNode; title: s
       </header>
       <main className="mx-auto max-w-6xl px-5 py-10">
         <Link
-          to="/app/children"
-          search={{ register: false }}
+          to={backToScreening ? "/app/scan" : "/app/children"}
+          search={backToScreening ? undefined : { register: false }}
           className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
         >
-          <ArrowLeft size={16} /> All children
+          <ArrowLeft size={16} /> {backToScreening ? "Back to screening" : "All children"}
         </Link>
         <h1 className="mb-8 font-display text-3xl font-semibold">{title}</h1>
         {children}

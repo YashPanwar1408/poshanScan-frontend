@@ -51,6 +51,25 @@ export type ScanResult = {
   confidence_score: number;
   created_at: string;
   age_category: "child_6_59m" | "adult";
+  child_name?: string;
+  name?: string;
+  dob?: string;
+  gender?: string;
+  guardian_name?: string;
+  village?: string;
+  child?: {
+    name?: string;
+    dob?: string;
+    gender?: string;
+    guardian_name?: string;
+    village?: string;
+  };
+  worker_name?: string;
+  worker_id?: string;
+  worker_phone?: string;
+  worker?: { name?: string; phone?: string };
+  captured_at?: string;
+  reference_size_mm?: number;
 };
 export function errorMessage(error: unknown) {
   if (axios.isAxiosError(error)) {

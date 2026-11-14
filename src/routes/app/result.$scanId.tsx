@@ -22,15 +22,20 @@ export const Route = createFileRoute("/app/result/$scanId")({
 
 const guidance = {
   child_6_59m: {
-    NORMAL: "Continue routine care and screening according to your local protocol.",
-    MAM: "Provide counselling and re-screen in 2–4 weeks. Follow your local care protocol.",
-    SAM: "Refer immediately for clinical assessment. Follow your local emergency care protocol.",
+    NORMAL:
+      "This screening does not indicate elevated risk on the child MUAC scale. Continue routine growth and nutrition monitoring under your local protocol. Encourage age-appropriate nutritious feeding and seek assessment if the child becomes unwell or concerns arise. Repeat screening at the interval recommended by your programme.",
+    MAM:
+      "This result indicates moderate screening risk and needs follow-up. Arrange assessment by a trained health worker to review the child's nutrition, health, and feeding. Provide counselling and any support recommended by your local programme. Schedule follow-up and repeat measurement according to the care protocol.",
+    SAM:
+      "This result indicates high screening risk and requires prompt clinical assessment. Refer the child urgently to an appropriate health facility or nutrition service under your local protocol. A trained clinician should assess for complications and determine the right treatment setting. If the child is very unwell or has danger signs, seek emergency care immediately.",
   },
   adult: {
     NORMAL:
-      "No elevated screening risk indicated by the adult scale. Continue routine nutrition screening and follow your local protocol.",
-    MAM: "The adult scale indicates moderate screening risk. Arrange nutrition assessment and follow your local care protocol.",
-    SAM: "The adult scale indicates high screening risk. Refer promptly for clinical assessment and follow your local care protocol.",
+      "This screening does not indicate elevated risk on the adult MUAC scale. Continue routine nutrition and health monitoring under your local protocol. Encourage a varied, adequate diet where possible. Repeat screening at the interval recommended by your programme or sooner if concerns arise.",
+    MAM:
+      "This result indicates moderate screening risk and should be followed up. Arrange assessment by a trained health worker to review nutrition status and possible contributing health or dietary factors. Follow local guidance for counselling, support, and any further assessment. Agree on a follow-up plan and repeat measurement as recommended.",
+    SAM:
+      "This result indicates high screening risk and needs prompt clinical assessment. Refer the adult to an appropriate health facility or nutrition service under your local protocol. A trained clinician should assess overall health and determine the appropriate care. If the person is acutely unwell, seek emergency care immediately.",
   },
 } as const;
 

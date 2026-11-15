@@ -1,5 +1,6 @@
 import { MsIcon } from "@/components/MsIcon";
 import { usePortalPrefs, type TextScale } from "@/lib/portal-prefs";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const scales: { id: TextScale; label: string; title: string }[] = [
   { id: "sm", label: "A−", title: "Decrease text size" },
@@ -50,6 +51,7 @@ export function UtilityBar() {
           <MsIcon name="contrast" size={14} />
           High contrast
         </button>
+        <ThemeToggle />
         <span className="inline-flex items-center gap-1.5 text-muted-foreground" title="Language">
           <MsIcon name="language" size={14} />
           English

@@ -31,6 +31,7 @@ import "../styles/tokens.css";
 import type { AgeCategory } from "../api/schemas";
 import { CommandPalette } from "./CommandPalette";
 import { Toaster } from "sonner";
+import { usePortalPrefs } from "@/lib/portal-prefs";
 
 // ── Nav config ────────────────────────────────────────────────────────────────
 
@@ -428,6 +429,7 @@ interface AppShellProps {
 export function AppShell({ title, children }: AppShellProps) {
   const { sidebarCollapsed, toggleSidebar, ageCategory, setAgeCategory, theme, toggleTheme } =
     useSvPrefs();
+  const { setTheme: setGlobalTheme } = usePortalPrefs();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { session } = useSvAuth();
@@ -499,7 +501,10 @@ export function AppShell({ title, children }: AppShellProps) {
   useEffect(() => {
     const el = document.querySelector<HTMLElement>(".sv-root");
     if (el) el.dataset["theme"] = theme;
-  }, [theme]);
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.style.colorScheme = theme;
+    setGlobalTheme(theme);
+  }, [setGlobalTheme, theme]);
 
   // Load age from URL on mount
   useEffect(() => {

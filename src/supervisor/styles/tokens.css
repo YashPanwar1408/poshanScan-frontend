@@ -8,6 +8,7 @@
   /* ── Canvas & surface ─────────────────────────── */
   --sv-canvas: #f4f7f6;
   --sv-surface: #ffffff;
+  --sv-surface-hover: #f0f5f3;
   --sv-border: #e1e8e5;
 
   /* ── Text ─────────────────────────────────────── */
@@ -70,6 +71,7 @@
 .sv-root[data-theme="dark"] {
   --sv-canvas: #0b1512;
   --sv-surface: #111e1a;
+  --sv-surface-hover: #1b2b26;
   --sv-border: #1f2f2a;
 
   --sv-text: #e6efec;

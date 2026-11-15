@@ -5,6 +5,7 @@ import { Brand } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { errorMessage, loginSchema, signupSchema } from "@/lib/api";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type LoginRole = "worker" | "supervisor";
 
@@ -81,7 +82,10 @@ export function RoleLogin({ role }: { role: LoginRole }) {
   return (
     <div className={`role-login role-login-${role} grid min-h-screen lg:grid-cols-2`}>
       <div className="flex flex-col px-6 py-7 sm:px-12 lg:px-20">
-        <Brand />
+        <div className="flex items-center justify-between gap-4">
+          <Brand />
+          <ThemeToggle />
+        </div>
         <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-12">
           <Link to="/" className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary">
             <ArrowLeft size={16} /> Back to home

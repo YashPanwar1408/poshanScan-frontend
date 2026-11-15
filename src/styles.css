@@ -59,6 +59,39 @@
   --danger: #9b2c2c;
   --danger-soft: #f8e8e8;
   --band: #0a4a40;
+  --sv-bg: #faf9f6;
+  --sv-surface: #ffffff;
+  --sv-text: #1c1b19;
+  --sv-muted: #5c5a56;
+  --sv-border: #d4d0c8;
+}
+html.dark {
+  --background: #101614;
+  --foreground: #e7efec;
+  --card: #17211e;
+  --card-foreground: #e7efec;
+  --primary: #35a98c;
+  --primary-foreground: #07110e;
+  --secondary: #1d2b27;
+  --secondary-foreground: #e7efec;
+  --muted: #1d2b27;
+  --muted-foreground: #a9bbb5;
+  --accent: #244139;
+  --accent-foreground: #e7efec;
+  --border: #31443d;
+  --hero: #101614;
+  --success: #54c38c;
+  --success-soft: #173a2a;
+  --warning: #f0b840;
+  --warning-soft: #3a2d11;
+  --danger: #f07870;
+  --danger-soft: #3d1c1b;
+  --band: #8ce0c4;
+  --sv-bg: #101614;
+  --sv-surface: #17211e;
+  --sv-text: #e7efec;
+  --sv-muted: #a9bbb5;
+  --sv-border: #31443d;
 }
 html.high-contrast {
   --background: #000000;
@@ -192,6 +225,14 @@ html[data-text-scale="lg"] {
   }
   .portal-btn-on-band:hover {
     background: #f1efea;
+  }
+  html.dark .portal-btn-on-band {
+    background: #17211e;
+    color: #8ce0c4;
+    border-color: #31443d;
+  }
+  html.dark .portal-btn-on-band:hover {
+    background: #1d2b27;
   }
   .viewfinder {
     position: absolute;

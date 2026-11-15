@@ -19,6 +19,7 @@ import {
 } from "@phosphor-icons/react";
 
 import { TEAM_MEMBERS } from "@/data/team";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 import childPoseGuide from "@/assets/child_muac_screening.jpg";
 import logo from "@/assets/poshanscan_logo.png";
@@ -294,6 +295,7 @@ export function Landing() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            <ThemeToggle />
             <Link
               to="/worker/login"
               className="portal-btn portal-btn-outline text-xs px-3.5 py-2 font-medium"

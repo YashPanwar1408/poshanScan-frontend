@@ -6,6 +6,7 @@ import { Brand } from "./Brand";
 import { useEffect, useState, type ReactNode } from "react";
 import { listQueued, deleteQueued } from "@/lib/offline";
 import { api } from "@/lib/api";
+import { ThemeToggle } from "@/components/ThemeToggle";
 export function RequireRole({ allowed, children }: { allowed: string[]; children: ReactNode }) {
   const { user, ready } = useAuth();
   const navigate = useNavigate();
@@ -70,6 +71,7 @@ export function WorkerShell({
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
           <Brand />
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             {pending > 0 && (
               <span className="flex items-center gap-1 text-xs text-warning">
                 <WifiOff size={14} />

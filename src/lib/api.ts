@@ -39,6 +39,8 @@ export const authSchema = z.object({
   access_token: z.string().min(1),
   role: z.enum(["worker", "supervisor", "admin"]),
   user_id: z.string().min(1),
+  name: z.string().optional(),
+  phone: z.string().optional(),
 });
 export type AuthUser = z.infer<typeof authSchema>;
 export type Child = z.infer<typeof childSchema> & { id: string };

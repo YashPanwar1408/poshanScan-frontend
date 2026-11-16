@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, LogOut, WifiOff } from "lucide-react";
+import { ArrowLeft, LogOut, UserRound, WifiOff } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Brand } from "./Brand";
@@ -29,7 +29,7 @@ export function WorkerShell({
   title: string;
   backToScreening?: boolean;
 }) {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [pending, setPending] = useState(0);
   useEffect(() => {
     let active = true;
@@ -71,6 +71,22 @@ export function WorkerShell({
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
           <Brand />
           <div className="flex items-center gap-3">
+            {user?.role === "worker" && (
+              <div
+                className="flex items-center gap-2 border-r border-border pr-3"
+                aria-label={`Signed in as ${user.name || `Worker ${user.user_id}`}`}
+              >
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                  <UserRound size={18} aria-hidden="true" />
+                </span>
+                <span className="hidden min-w-0 sm:block">
+                  <span className="block max-w-40 truncate text-sm font-semibold">
+                    {user.name || `Worker ${user.user_id}`}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">Field worker</span>
+                </span>
+              </div>
+            )}
             <ThemeToggle />
             {pending > 0 && (
               <span className="flex items-center gap-1 text-xs text-warning">

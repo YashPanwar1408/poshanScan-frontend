@@ -22,7 +22,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
   async function login(phone: string, password: string) {
     const { data } = await api.post('/auth/login', { phone, password });
-    const next = authSchema.parse(data);
+    const next = authSchema.parse({
+      ...data,
+      name: data.name || data.worker_name || data.full_name || data.display_name,
+      phone: data.phone || data.worker_phone || phone,
+    });
     localStorage.setItem('poshanscan_token', next.access_token);
     sessionStorage.setItem('poshanscan_user', JSON.stringify(next));
     setUser(next);

@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { ArrowRight, AlertTriangle, CheckCircle, UserRound, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RequireRole, WorkerShell } from "@/components/Screen";
 import { api, errorMessage, type ScanResult } from "@/lib/api";
 import { getMuacBands, type MuacAgeCategory } from "@/lib/muac";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/app/result/$scanId")({
   head: () => ({
@@ -41,27 +42,69 @@ const guidance = {
 
 function Result() {
   const { scanId } = Route.useParams();
+  const { user } = useAuth();
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState("");
+
+  const addSignedInDetails = useCallback((value: ScanResult): ScanResult => {
+    let savedPerson: ScanResult["child"] = undefined;
+    try {
+      const stored = sessionStorage.getItem(`poshanscan_person_${value.child_id}`);
+      if (stored) savedPerson = JSON.parse(stored);
+    } catch {
+      // Ignore invalid cached profile data and use the API response.
+    }
+    const firstPresent = (...values: Array<string | undefined>) =>
+      values.find((field) => typeof field === "string" && field.trim().length > 0);
+    return {
+      ...value,
+      child: {
+        name: firstPresent(value.child?.name, savedPerson?.name),
+        dob: firstPresent(value.child?.dob, savedPerson?.dob),
+        gender: firstPresent(value.child?.gender, savedPerson?.gender),
+        village: firstPresent(value.child?.village, savedPerson?.village),
+        guardian_name: firstPresent(value.child?.guardian_name, savedPerson?.guardian_name),
+      },
+      child_name: firstPresent(value.child_name, value.name, value.child?.name, savedPerson?.name),
+      dob: firstPresent(value.dob, value.child?.dob, savedPerson?.dob),
+      gender: firstPresent(value.gender, value.child?.gender, savedPerson?.gender),
+      village: firstPresent(value.village, value.child?.village, savedPerson?.village),
+      guardian_name: firstPresent(
+        value.guardian_name,
+        value.child?.guardian_name,
+        savedPerson?.guardian_name,
+      ),
+      worker: {
+        name: firstPresent(
+          value.worker?.name,
+          value.worker_name,
+          user?.name,
+          user ? `Worker ${user.user_id}` : undefined,
+        ),
+        phone: firstPresent(value.worker?.phone, value.worker_phone, user?.phone),
+      },
+      worker_id: firstPresent(value.worker_id, user?.user_id),
+    };
+  }, [user]);
 
   useEffect(() => {
     const cached = sessionStorage.getItem(`poshanscan_result_${scanId}`);
     if (cached) {
       try {
-        setResult(JSON.parse(cached));
+        setResult(addSignedInDetails(JSON.parse(cached)));
       } catch {
         sessionStorage.removeItem(`poshanscan_result_${scanId}`);
       }
     }
     api
       .get<ScanResult>(`/scans/${encodeURIComponent(scanId)}`)
-      .then(({ data }) => setResult(data))
+      .then(({ data }) => setResult(addSignedInDetails(data)))
       .catch((cause) => {
         if (!sessionStorage.getItem(`poshanscan_result_${scanId}`)) {
           setError(errorMessage(cause));
         }
       });
-  }, [scanId]);
+  }, [scanId, addSignedInDetails]);
 
   return (
     <WorkerShell title="Screening report">
@@ -82,8 +125,11 @@ function Report({ result }: { result: ScanResult }) {
   const normalWidth = 100 - severeWidth - moderateWidth;
   const subject = result.child ?? {};
   const subjectName = subject.name ?? result.child_name ?? result.name ?? result.child_id;
-  const workerName = result.worker?.name ?? result.worker_name ?? "Signed-in field worker";
-  const workerPhone = result.worker?.phone ?? result.worker_phone;
+  const workerName =
+    result.worker?.name ||
+    result.worker_name ||
+    (result.worker_id ? `Worker ${result.worker_id}` : "Signed-in field worker");
+  const workerPhone = result.worker?.phone || result.worker_phone;
   const recordedAt = result.captured_at ?? result.created_at;
   const bandLabel =
     result.risk_band === "NORMAL"

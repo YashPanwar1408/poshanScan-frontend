@@ -240,6 +240,7 @@ The worker flow expects endpoints similar to:
 | `POST` | `/auth/login`      | Authenticate a worker                     |
 | `POST` | `/auth/register`   | Register a worker account                 |
 | `GET`  | `/children/search` | Search people by query and `age_category` |
+| `GET`  | `/children/{child_id}/scans` | List a person's screening history and uploaded photo URLs |
 | `POST` | `/children`        | Register a person with `age_category`     |
 | `POST` | `/scans`           | Submit an image and scan metadata         |
 | `GET`  | `/scans/{scan_id}` | Retrieve a detailed result report         |
@@ -269,6 +270,12 @@ The report supports both nested and flat metadata fields for compatibility:
   }
 }
 ```
+
+The worker's child profile view calls `GET /children/{child_id}/scans`. Return
+an array (or `{ "scans": [...] }`) of scan results with `scan_id`, result
+fields, timestamps, and an `image_url`, `photo_url`, or `uploaded_photo_url`
+for each uploaded photo. The image URL must be reachable by the signed-in
+worker. The report link uses `GET /scans/{scan_id}`.
 
 ### Supervisor API areas
 
